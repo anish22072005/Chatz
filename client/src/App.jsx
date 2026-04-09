@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+const PROD_BACKEND_URL = "https://chatz-k70j.onrender.com";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000");
+const SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL ||
+  (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000");
+
+function toFriendlyNetworkError(error, fallbackMessage) {
+  if (error?.name === "TypeError" && /fetch/i.test(error?.message || "")) {
+    return "Cannot reach backend API. Check deployment URL and CORS settings.";
+  }
+  return error?.message || fallbackMessage;
+}
 
 function FormField({ label, type = "text", value, onChange, placeholder }) {
   return (
@@ -66,7 +78,7 @@ export default function App() {
         }
         setMessages(data.messages || []);
       } catch (error) {
-        setChatError(error.message);
+        setChatError(toFriendlyNetworkError(error, "Failed to load messages"));
       }
     }
 
@@ -138,7 +150,7 @@ export default function App() {
       setUsername("");
       setIdentifier("");
     } catch (error) {
-      setAuthError(error.message);
+      setAuthError(toFriendlyNetworkError(error, "Authentication failed"));
     }
   }
 
