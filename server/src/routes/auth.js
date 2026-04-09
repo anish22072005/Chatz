@@ -22,7 +22,7 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (password.length < 5) {
+    if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
@@ -57,7 +57,7 @@ router.post("/login", async (req, res) => {
     const { identifier, password } = req.body;
 
     if (!identifier || !password) {
-      return res.status(400).json({ message: "Identifier and password are required" });
+      return res.status(400).json({ message: "Id and password are required" });
     }
 
     const user = await User.findOne({

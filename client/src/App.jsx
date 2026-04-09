@@ -265,7 +265,7 @@ export default function App() {
 
       <section className="chat-shell">
         <header>
-          <h1>Realtime Room</h1>
+          <h1>Chat Room</h1>
           <p>{messages.length} messages synced from MongoDB</p>
         </header>
 
