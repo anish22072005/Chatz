@@ -1,0 +1,14 @@
+{
+  "name": "chatz",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Full-stack real-time chat app",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
