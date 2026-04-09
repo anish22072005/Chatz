@@ -15,9 +15,22 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:5173";
+const rawClientUrls = process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigins = rawClientUrls
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
-app.use(cors({ origin: CLIENT_URL }));
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("Not allowed by CORS"));
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
@@ -52,7 +65,7 @@ app.get("/api/messages", authMiddleware, async (_req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: CLIENT_URL,
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   }
 });
