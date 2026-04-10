@@ -187,7 +187,7 @@ export default function App() {
       <main className="auth-page">
         <section className="auth-card">
           <h1>Chatz</h1>
-          <p>Jump into a fast real-time room with JWT auth + Socket.IO.</p>
+          <p>Welcome to Chatz! Please sign in or create an account to get started.</p>
 
           <form onSubmit={handleAuthSubmit} className="auth-form">
             {mode === "register" ? (
@@ -196,7 +196,7 @@ export default function App() {
                   label="Username"
                   value={username}
                   onChange={setUsername}
-                  placeholder="your_handle"
+                  placeholder="Username"
                 />
                 <FormField
                   label="Email"
@@ -211,7 +211,7 @@ export default function App() {
                 label="Username or Email"
                 value={identifier}
                 onChange={setIdentifier}
-                placeholder="your_handle or you@example.com"
+                placeholder="your_username or you@example.com"
               />
             )}
 
@@ -220,7 +220,7 @@ export default function App() {
               type="password"
               value={password}
               onChange={setPassword}
-              placeholder="at least 6 chars"
+              placeholder="at least 6 characters"
             />
 
             {authError ? <p className="error">{authError}</p> : null}
