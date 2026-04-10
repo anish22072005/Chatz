@@ -103,16 +103,61 @@ router.get("/me", authMiddleware, async (req, res) => {
 
 router.get("/users", authMiddleware, async (_req, res) => {
   try {
+    const currentUser = await User.findById(_req.user.userId).select("blockedUsers").lean();
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const blockedSet = new Set((currentUser.blockedUsers || []).map((id) => id.toString()));
     const users = await User.find().sort({ username: 1 }).select("_id username").lean();
 
     return res.json({
       users: users.map((item) => ({
         id: item._id.toString(),
-        username: item.username
+        username: item.username,
+        isBlocked: blockedSet.has(item._id.toString())
       }))
     });
   } catch (error) {
     return res.status(500).json({ message: "Unable to fetch users" });
+  }
+});
+
+router.post("/users/:id/block", authMiddleware, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    const currentUserId = req.user.userId;
+
+    if (targetId === currentUserId) {
+      return res.status(400).json({ message: "You cannot block yourself" });
+    }
+
+    const targetExists = await User.exists({ _id: targetId });
+    if (!targetExists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await User.findByIdAndUpdate(currentUserId, {
+      $addToSet: { blockedUsers: targetId }
+    });
+
+    return res.json({ ok: true, blockedUserId: targetId });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to block user" });
+  }
+});
+
+router.post("/users/:id/unblock", authMiddleware, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+
+    await User.findByIdAndUpdate(req.user.userId, {
+      $pull: { blockedUsers: targetId }
+    });
+
+    return res.json({ ok: true, unblockedUserId: targetId });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to unblock user" });
   }
 });
 

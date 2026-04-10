@@ -59,9 +59,12 @@ export default function App() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [messageText, setMessageText] = useState("");
   const [chatError, setChatError] = useState("");
+  const [kickTarget, setKickTarget] = useState(null);
+  const [kickLoading, setKickLoading] = useState(false);
 
   const socketRef = useRef(null);
   const endRef = useRef(null);
+  const blockedIdsRef = useRef(new Set());
 
   const isAuthed = Boolean(token && user);
 
@@ -76,11 +79,35 @@ export default function App() {
         return {
           id: String(u?.id || name || `unknown-${index}`),
           username: name || "Unknown user",
-          isOnline: onlineIds.has(String(u?.id || ""))
+          isOnline: onlineIds.has(String(u?.id || "")),
+          isBlocked: Boolean(u?.isBlocked)
         };
       })
       .sort((a, b) => a.username.localeCompare(b.username));
   }, [allUsers, onlineUsers]);
+
+  const blockedUserIds = useMemo(() => {
+    return new Set(
+      usersWithStatus
+        .filter((u) => u.isBlocked)
+        .map((u) => String(u.id))
+    );
+  }, [usersWithStatus]);
+
+  const visibleUsers = useMemo(() => {
+    return usersWithStatus.filter((u) => !u.isBlocked);
+  }, [usersWithStatus]);
+
+  const visibleMessages = useMemo(() => {
+    return messages.filter((msg) => {
+      const senderId = String(msg?.sender?.id || "");
+      return !blockedUserIds.has(senderId);
+    });
+  }, [messages, blockedUserIds]);
+
+  useEffect(() => {
+    blockedIdsRef.current = blockedUserIds;
+  }, [blockedUserIds]);
 
   useEffect(() => {
     if (endRef.current) {
@@ -126,7 +153,8 @@ export default function App() {
         const normalizedUsers = Array.isArray(data.users)
           ? data.users.map((item) => ({
             id: String(item?.id || ""),
-            username: typeof item?.username === "string" ? item.username : ""
+            username: typeof item?.username === "string" ? item.username : "",
+            isBlocked: Boolean(item?.isBlocked)
           }))
           : [];
         setAllUsers(normalizedUsers);
@@ -156,6 +184,10 @@ export default function App() {
     });
 
     socket.on("new_message", (message) => {
+      const senderId = String(message?.sender?.id || "");
+      if (blockedIdsRef.current.has(senderId)) {
+        return;
+      }
       setMessages((current) => [...current, message]);
     });
 
@@ -236,6 +268,45 @@ export default function App() {
     setMessageText("");
   }
 
+  async function confirmKickTarget() {
+    if (!kickTarget || !token) {
+      return;
+    }
+
+    setKickLoading(true);
+    setChatError("");
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/users/${kickTarget.id}/block`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to kick out user");
+      }
+
+      setAllUsers((current) =>
+        current.map((item) =>
+          String(item.id) === String(kickTarget.id)
+            ? { ...item, isBlocked: true }
+            : item
+        )
+      );
+      setMessages((current) =>
+        current.filter((msg) => String(msg?.sender?.id || "") !== String(kickTarget.id))
+      );
+      setKickTarget(null);
+    } catch (error) {
+      setChatError(toFriendlyNetworkError(error, "Failed to kick out user"));
+    } finally {
+      setKickLoading(false);
+    }
+  }
+
   if (!isAuthed) {
     return (
       <main className="auth-page">
@@ -309,14 +380,25 @@ export default function App() {
         <div>
           <h3>Users</h3>
           <ul>
-            {usersWithStatus.map((u) => (
+            {visibleUsers.map((u) => (
               <li key={u.id} className="user-status-row">
-                <span
-                  className={u.isOnline ? "status-dot online" : "status-dot offline"}
-                  aria-label={u.isOnline ? "online" : "offline"}
-                  title={u.isOnline ? "Online" : "Offline"}
-                />
-                <span>{u.username}</span>
+                <div className="user-status-main">
+                  <span
+                    className={u.isOnline ? "status-dot online" : "status-dot offline"}
+                    aria-label={u.isOnline ? "online" : "offline"}
+                    title={u.isOnline ? "Online" : "Offline"}
+                  />
+                  <span>{u.username}</span>
+                </div>
+                {String(u.id) !== String(user.id) ? (
+                  <button
+                    type="button"
+                    className="kick-btn"
+                    onClick={() => setKickTarget({ id: u.id, username: u.username })}
+                  >
+                    Kick out
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -327,11 +409,11 @@ export default function App() {
       <section className="chat-shell">
         <header>
           <h1>Chat Room</h1>
-          <p>Your {messages.length} earlier messages has been synced!</p>
+          <p>Your {visibleMessages.length} earlier messages has been synced!</p>
         </header>
 
         <div className="messages">
-          {messages.map((msg) => {
+          {visibleMessages.map((msg) => {
             const mine = msg.sender?.id === user.id;
             return (
               <article key={msg.id} className={mine ? "message mine" : "message"}>
@@ -356,6 +438,35 @@ export default function App() {
 
         {chatError ? <p className="error chat-error">{chatError}</p> : null}
       </section>
+
+      {kickTarget ? (
+        <div className="dialog-backdrop" role="presentation">
+          <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="kick-title">
+            <h3 id="kick-title">Kick out user?</h3>
+            <p>
+              Are you sure you want to remove {kickTarget.username} from your chat view?
+            </p>
+            <div className="dialog-actions">
+              <button
+                type="button"
+                className="dialog-cancel"
+                onClick={() => setKickTarget(null)}
+                disabled={kickLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="dialog-confirm"
+                onClick={confirmKickTarget}
+                disabled={kickLoading}
+              >
+                {kickLoading ? "Removing..." : "Yes, kick out"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

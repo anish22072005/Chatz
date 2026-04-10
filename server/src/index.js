@@ -9,6 +9,7 @@ const { Server } = require("socket.io");
 
 const authRoutes = require("./routes/auth");
 const Message = require("./models/Message");
+const User = require("./models/User");
 const authMiddleware = require("./middleware/auth");
 
 const app = express();
@@ -56,23 +57,29 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 
-app.get("/api/messages", authMiddleware, async (_req, res) => {
+app.get("/api/messages", authMiddleware, async (req, res) => {
   try {
+    const currentUser = await User.findById(req.user.userId).select("blockedUsers").lean();
+    const blockedSet = new Set((currentUser?.blockedUsers || []).map((id) => id.toString()));
+
     const messages = await Message.find()
       .sort({ createdAt: -1 })
       .limit(100)
       .populate("sender", "username")
       .lean();
 
-    const normalized = messages.reverse().map((msg) => ({
-      id: msg._id,
-      content: msg.content,
-      createdAt: msg.createdAt,
-      sender: {
-        id: msg.sender?._id,
-        username: msg.sender?.username || "Unknown"
-      }
-    }));
+    const normalized = messages
+      .reverse()
+      .filter((msg) => !blockedSet.has(msg.sender?._id?.toString() || ""))
+      .map((msg) => ({
+        id: msg._id,
+        content: msg.content,
+        createdAt: msg.createdAt,
+        sender: {
+          id: msg.sender?._id,
+          username: msg.sender?.username || "Unknown"
+        }
+      }));
 
     res.json({ messages: normalized });
   } catch (error) {
