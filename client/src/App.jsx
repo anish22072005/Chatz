@@ -36,7 +36,17 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(raw);
+    } catch (_error) {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
   });
   const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
@@ -57,7 +67,9 @@ export default function App() {
 
   const usersWithStatus = useMemo(() => {
     const onlineIds = new Set(onlineUsers.map((u) => String(u.id)));
-    return [...allUsers]
+    const safeUsers = Array.isArray(allUsers) ? allUsers : [];
+
+    return safeUsers
       .map((u) => ({ ...u, isOnline: onlineIds.has(String(u.id)) }))
       .sort((a, b) => a.username.localeCompare(b.username));
   }, [allUsers, onlineUsers]);
@@ -103,7 +115,7 @@ export default function App() {
         if (!response.ok) {
           throw new Error(data.message || "Failed to load users");
         }
-        setAllUsers(data.users || []);
+        setAllUsers(Array.isArray(data.users) ? data.users : []);
       } catch (error) {
         setChatError(toFriendlyNetworkError(error, "Failed to load users"));
       }
