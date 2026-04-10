@@ -266,7 +266,7 @@ export default function App() {
       <section className="chat-shell">
         <header>
           <h1>Chat Room</h1>
-          <p>{messages.length} Your earlier messages has been synced!</p>
+          <p>Your {messages.length} earlier messages has been synced!</p>
         </header>
 
         <div className="messages">
