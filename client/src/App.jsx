@@ -66,11 +66,19 @@ export default function App() {
   const isAuthed = Boolean(token && user);
 
   const usersWithStatus = useMemo(() => {
-    const onlineIds = new Set(onlineUsers.map((u) => String(u.id)));
+    const safeOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
+    const onlineIds = new Set(safeOnlineUsers.map((u) => String(u?.id || "")));
     const safeUsers = Array.isArray(allUsers) ? allUsers : [];
 
     return safeUsers
-      .map((u) => ({ ...u, isOnline: onlineIds.has(String(u.id)) }))
+      .map((u, index) => {
+        const name = typeof u?.username === "string" ? u.username.trim() : "";
+        return {
+          id: String(u?.id || name || `unknown-${index}`),
+          username: name || "Unknown user",
+          isOnline: onlineIds.has(String(u?.id || ""))
+        };
+      })
       .sort((a, b) => a.username.localeCompare(b.username));
   }, [allUsers, onlineUsers]);
 
@@ -115,7 +123,13 @@ export default function App() {
         if (!response.ok) {
           throw new Error(data.message || "Failed to load users");
         }
-        setAllUsers(Array.isArray(data.users) ? data.users : []);
+        const normalizedUsers = Array.isArray(data.users)
+          ? data.users.map((item) => ({
+            id: String(item?.id || ""),
+            username: typeof item?.username === "string" ? item.username : ""
+          }))
+          : [];
+        setAllUsers(normalizedUsers);
       } catch (error) {
         setChatError(toFriendlyNetworkError(error, "Failed to load users"));
       }
@@ -146,7 +160,7 @@ export default function App() {
     });
 
     socket.on("online_users", (users) => {
-      setOnlineUsers(users || []);
+      setOnlineUsers(Array.isArray(users) ? users : []);
     });
 
     return () => {
