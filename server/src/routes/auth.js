@@ -101,4 +101,19 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
+router.get("/users", authMiddleware, async (_req, res) => {
+  try {
+    const users = await User.find().sort({ username: 1 }).select("_id username").lean();
+
+    return res.json({
+      users: users.map((item) => ({
+        id: item._id.toString(),
+        username: item.username
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to fetch users" });
+  }
+});
+
 module.exports = router;

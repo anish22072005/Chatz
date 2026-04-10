@@ -45,6 +45,7 @@ export default function App() {
   const [authError, setAuthError] = useState("");
 
   const [messages, setMessages] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [messageText, setMessageText] = useState("");
   const [chatError, setChatError] = useState("");
@@ -54,9 +55,12 @@ export default function App() {
 
   const isAuthed = Boolean(token && user);
 
-  const sortedOnlineUsers = useMemo(() => {
-    return [...onlineUsers].sort((a, b) => a.username.localeCompare(b.username));
-  }, [onlineUsers]);
+  const usersWithStatus = useMemo(() => {
+    const onlineIds = new Set(onlineUsers.map((u) => String(u.id)));
+    return [...allUsers]
+      .map((u) => ({ ...u, isOnline: onlineIds.has(String(u.id)) }))
+      .sort((a, b) => a.username.localeCompare(b.username));
+  }, [allUsers, onlineUsers]);
 
   useEffect(() => {
     if (endRef.current) {
@@ -84,6 +88,29 @@ export default function App() {
 
     if (isAuthed) {
       loadMessages();
+    }
+  }, [isAuthed, token]);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/users`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load users");
+        }
+        setAllUsers(data.users || []);
+      } catch (error) {
+        setChatError(toFriendlyNetworkError(error, "Failed to load users"));
+      }
+    }
+
+    if (isAuthed) {
+      loadUsers();
     }
   }, [isAuthed, token]);
 
@@ -160,6 +187,7 @@ export default function App() {
     setToken("");
     setUser(null);
     setMessages([]);
+    setAllUsers([]);
     setOnlineUsers([]);
     setChatError("");
   }
@@ -253,10 +281,17 @@ export default function App() {
           <p className="pill">{user.username}</p>
         </div>
         <div>
-          <h3>Online</h3>
+          <h3>Users</h3>
           <ul>
-            {sortedOnlineUsers.map((u) => (
-              <li key={u.id}>{u.username}</li>
+            {usersWithStatus.map((u) => (
+              <li key={u.id} className="user-status-row">
+                <span
+                  className={u.isOnline ? "status-dot online" : "status-dot offline"}
+                  aria-label={u.isOnline ? "online" : "offline"}
+                  title={u.isOnline ? "Online" : "Offline"}
+                />
+                <span>{u.username}</span>
+              </li>
             ))}
           </ul>
         </div>

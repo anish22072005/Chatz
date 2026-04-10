@@ -164,9 +164,34 @@ button:hover {
 
 .sidebar ul {
   margin: 0;
-  padding-left: 18px;
+  padding: 0;
+  list-style: none;
   display: grid;
   gap: 6px;
+}
+
+.user-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  flex: 0 0 auto;
+}
+
+.status-dot.online {
+  background: #32d583;
+  box-shadow: 0 0 0 3px rgba(50, 213, 131, 0.22);
+}
+
+.status-dot.offline {
+  background: #ff6b6b;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
 }
 
 .logout-btn {
