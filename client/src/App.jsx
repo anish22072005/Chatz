@@ -442,9 +442,9 @@ export default function App() {
       {kickTarget ? (
         <div className="dialog-backdrop" role="presentation">
           <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="kick-title">
-            <h3 id="kick-title">Kick out user?</h3>
+            <h3 id="kick-title">Unfriend user?</h3>
             <p>
-              Are you sure you want to remove {kickTarget.username} from your chat view?
+              Are you sure you want to remove {kickTarget.username} from your friend list?
             </p>
             <div className="dialog-actions">
               <button
@@ -461,7 +461,7 @@ export default function App() {
                 onClick={confirmKickTarget}
                 disabled={kickLoading}
               >
-                {kickLoading ? "Removing..." : "Yes, kick out"}
+                {kickLoading ? "Removing..." : "Yes, unfriend"}
               </button>
             </div>
           </section>
