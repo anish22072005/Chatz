@@ -21,9 +21,26 @@ const allowedOrigins = rawClientUrls
   .map((value) => value.trim())
   .filter(Boolean);
 
+function isAllowedOrigin(origin) {
+  if (!origin) {
+    return true;
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  // Allow Chatz Netlify deployments without needing an exact per-branch URL.
+  if (/^https:\/\/chatz[\w-]*\.netlify\.app$/i.test(origin)) {
+    return true;
+  }
+
+  return false;
+}
+
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error("Not allowed by CORS"));
