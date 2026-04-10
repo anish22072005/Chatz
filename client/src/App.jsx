@@ -301,7 +301,7 @@ export default function App() {
       );
       setKickTarget(null);
     } catch (error) {
-      setChatError(toFriendlyNetworkError(error, "Failed to kick out user"));
+      setChatError(toFriendlyNetworkError(error, "Failed to unfriend user"));
     } finally {
       setKickLoading(false);
     }
@@ -396,7 +396,7 @@ export default function App() {
                     className="kick-btn"
                     onClick={() => setKickTarget({ id: u.id, username: u.username })}
                   >
-                    Kick out
+                    Unfriend
                   </button>
                 ) : null}
               </li>
