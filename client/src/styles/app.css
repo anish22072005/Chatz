@@ -137,6 +137,8 @@ button:disabled {
   grid-template-columns: clamp(280px, 30vw, 360px) minmax(0, 1fr);
   gap: 20px;
   align-items: stretch;
+  justify-items: stretch;
+  width: min(1400px, 100%);
 }
 
 .sidebar,
@@ -279,11 +281,12 @@ button:disabled {
 }
 
 .chat-shell {
+  width: 100%;
   padding: 20px;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
   gap: 14px;
-  min-height: 80vh;
+  min-height: 84vh;
 }
 
 .chat-shell header h1 {
@@ -414,6 +417,7 @@ button:disabled {
   .chat-page {
     grid-template-columns: 1fr;
     align-items: start;
+    justify-items: stretch;
   }
 
   .user-status-row {
@@ -421,7 +425,7 @@ button:disabled {
   }
 
   .chat-shell {
-    min-height: 70vh;
+    min-height: 74vh;
   }
 
   .message {
