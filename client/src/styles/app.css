@@ -108,6 +108,12 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
 .error {
   margin: 0;
   color: var(--danger);
@@ -177,6 +183,28 @@ button:hover {
   gap: 10px;
 }
 
+.chat-user-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--text);
+  text-align: left;
+  font-weight: 600;
+}
+
+.chat-user-btn:hover {
+  transform: none;
+  border-color: rgba(255, 183, 3, 0.55);
+}
+
+.chat-user-btn.active {
+  background: rgba(255, 183, 3, 0.22);
+  border-color: rgba(255, 183, 3, 0.7);
+}
+
 .user-status-main {
   display: flex;
   align-items: center;
@@ -184,8 +212,27 @@ button:hover {
   min-width: 0;
 }
 
-.user-status-main span:last-child {
+.chat-user-meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.chat-user-name {
+  display: block;
+  line-height: 1.2;
   word-break: break-word;
+}
+
+.chat-user-preview {
+  display: block;
+  max-width: 130px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status-dot {

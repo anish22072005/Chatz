@@ -57,6 +57,8 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [messagePreviews, setMessagePreviews] = useState({});
+  const [activeChatUserId, setActiveChatUserId] = useState("");
   const [messageText, setMessageText] = useState("");
   const [chatError, setChatError] = useState("");
   const [kickTarget, setKickTarget] = useState(null);
@@ -98,12 +100,33 @@ export default function App() {
     return usersWithStatus.filter((u) => !u.isBlocked);
   }, [usersWithStatus]);
 
-  const visibleMessages = useMemo(() => {
-    return messages.filter((msg) => {
-      const senderId = String(msg?.sender?.id || "");
-      return !blockedUserIds.has(senderId);
-    });
-  }, [messages, blockedUserIds]);
+  const chatCandidates = useMemo(() => {
+    return visibleUsers.filter((u) => String(u.id) !== String(user?.id || ""));
+  }, [visibleUsers, user]);
+
+  const activeChatUser = useMemo(() => {
+    return chatCandidates.find((item) => String(item.id) === String(activeChatUserId)) || null;
+  }, [chatCandidates, activeChatUserId]);
+
+  function upsertPreview(message, currentUserId) {
+    const senderId = String(message?.sender?.id || "");
+    const recipientId = String(message?.recipient?.id || "");
+    const me = String(currentUserId || "");
+    const otherUserId = senderId === me ? recipientId : senderId;
+
+    if (!otherUserId || !me || (senderId !== me && recipientId !== me)) {
+      return;
+    }
+
+    setMessagePreviews((current) => ({
+      ...current,
+      [otherUserId]: {
+        content: message?.content || "",
+        createdAt: message?.createdAt || new Date().toISOString(),
+        isMine: senderId === me
+      }
+    }));
+  }
 
   useEffect(() => {
     blockedIdsRef.current = blockedUserIds;
@@ -116,9 +139,26 @@ export default function App() {
   }, [messages]);
 
   useEffect(() => {
+    if (!chatCandidates.length) {
+      setActiveChatUserId("");
+      return;
+    }
+
+    const exists = chatCandidates.some((item) => String(item.id) === String(activeChatUserId));
+    if (!exists) {
+      setActiveChatUserId(String(chatCandidates[0].id));
+    }
+  }, [chatCandidates, activeChatUserId]);
+
+  useEffect(() => {
     async function loadMessages() {
+      if (!activeChatUserId) {
+        setMessages([]);
+        return;
+      }
+
       try {
-        const response = await fetch(`${API_URL}/api/messages`, {
+        const response = await fetch(`${API_URL}/api/messages?userId=${encodeURIComponent(activeChatUserId)}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -136,7 +176,7 @@ export default function App() {
     if (isAuthed) {
       loadMessages();
     }
-  }, [isAuthed, token]);
+  }, [isAuthed, token, activeChatUserId]);
 
   useEffect(() => {
     async function loadUsers() {
@@ -169,6 +209,47 @@ export default function App() {
   }, [isAuthed, token]);
 
   useEffect(() => {
+    async function loadPreviews() {
+      try {
+        const response = await fetch(`${API_URL}/api/messages/previews`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to load message previews");
+        }
+
+        const normalized = Array.isArray(data.previews)
+          ? data.previews.reduce((acc, item) => {
+            const id = String(item?.userId || "");
+            if (!id) {
+              return acc;
+            }
+
+            acc[id] = {
+              content: typeof item?.content === "string" ? item.content : "",
+              createdAt: item?.createdAt || "",
+              isMine: Boolean(item?.isMine)
+            };
+
+            return acc;
+          }, {})
+          : {};
+
+        setMessagePreviews(normalized);
+      } catch (error) {
+        setChatError(toFriendlyNetworkError(error, "Failed to load message previews"));
+      }
+    }
+
+    if (isAuthed) {
+      loadPreviews();
+    }
+  }, [isAuthed, token]);
+
+  useEffect(() => {
     if (!isAuthed) {
       return undefined;
     }
@@ -185,7 +266,17 @@ export default function App() {
 
     socket.on("new_message", (message) => {
       const senderId = String(message?.sender?.id || "");
+      const recipientId = String(message?.recipient?.id || "");
+      const me = String(user?.id || "");
       if (blockedIdsRef.current.has(senderId)) {
+        return;
+      }
+      const involvesMe = senderId === me || recipientId === me;
+      const otherUserId = senderId === me ? recipientId : senderId;
+      if (involvesMe && otherUserId) {
+        upsertPreview(message, me);
+      }
+      if (!involvesMe || otherUserId !== String(activeChatUserId)) {
         return;
       }
       setMessages((current) => [...current, message]);
@@ -199,7 +290,7 @@ export default function App() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [isAuthed, token]);
+  }, [isAuthed, token, user, activeChatUserId]);
 
   async function handleAuthSubmit(event) {
     event.preventDefault();
@@ -247,6 +338,8 @@ export default function App() {
     setMessages([]);
     setAllUsers([]);
     setOnlineUsers([]);
+    setMessagePreviews({});
+    setActiveChatUserId("");
     setChatError("");
   }
 
@@ -255,11 +348,11 @@ export default function App() {
     setChatError("");
 
     const content = messageText.trim();
-    if (!content || !socketRef.current) {
+    if (!content || !socketRef.current || !activeChatUserId) {
       return;
     }
 
-    socketRef.current.emit("chat_message", { content }, (response) => {
+    socketRef.current.emit("chat_message", { content, recipientId: activeChatUserId }, (response) => {
       if (!response?.ok) {
         setChatError(response?.message || "Failed to send message");
       }
@@ -299,6 +392,14 @@ export default function App() {
       setMessages((current) =>
         current.filter((msg) => String(msg?.sender?.id || "") !== String(kickTarget.id))
       );
+      if (String(activeChatUserId) === String(kickTarget.id)) {
+        setActiveChatUserId("");
+      }
+      setMessagePreviews((current) => {
+        const next = { ...current };
+        delete next[String(kickTarget.id)];
+        return next;
+      });
       setKickTarget(null);
     } catch (error) {
       setChatError(toFriendlyNetworkError(error, "Failed to unfriend user"));
@@ -378,27 +479,38 @@ export default function App() {
           <p className="pill">{user.username}</p>
         </div>
         <div>
-          <h3>Users</h3>
+          <h3>Chats</h3>
           <ul>
-            {visibleUsers.map((u) => (
+            {chatCandidates.map((u) => (
               <li key={u.id} className="user-status-row">
-                <div className="user-status-main">
-                  <span
-                    className={u.isOnline ? "status-dot online" : "status-dot offline"}
-                    aria-label={u.isOnline ? "online" : "offline"}
-                    title={u.isOnline ? "Online" : "Offline"}
-                  />
-                  <span>{u.username}</span>
-                </div>
-                {String(u.id) !== String(user.id) ? (
-                  <button
-                    type="button"
-                    className="kick-btn"
-                    onClick={() => setKickTarget({ id: u.id, username: u.username })}
-                  >
-                    Unfriend
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  className={String(activeChatUserId) === String(u.id) ? "chat-user-btn active" : "chat-user-btn"}
+                  onClick={() => setActiveChatUserId(String(u.id))}
+                >
+                  <div className="user-status-main">
+                    <span
+                      className={u.isOnline ? "status-dot online" : "status-dot offline"}
+                      aria-label={u.isOnline ? "online" : "offline"}
+                      title={u.isOnline ? "Online" : "Offline"}
+                    />
+                    <div className="chat-user-meta">
+                      <span className="chat-user-name">{u.username}</span>
+                      <span className="chat-user-preview">
+                        {messagePreviews[u.id]
+                          ? `${messagePreviews[u.id].isMine ? "You: " : ""}${messagePreviews[u.id].content}`
+                          : "No messages yet"}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  className="kick-btn"
+                  onClick={() => setKickTarget({ id: u.id, username: u.username })}
+                >
+                  Unfriend
+                </button>
               </li>
             ))}
           </ul>
@@ -408,12 +520,16 @@ export default function App() {
 
       <section className="chat-shell">
         <header>
-          <h1>Chat Room</h1>
-          <p>Your {visibleMessages.length} earlier messages has been synced!</p>
+          <h1>{activeChatUser ? `Chat with ${activeChatUser.username}` : "Select someone to chat"}</h1>
+          <p>
+            {activeChatUser
+              ? `${messages.length} messages in this conversation`
+              : "Choose one person from the left to start chatting"}
+          </p>
         </header>
 
         <div className="messages">
-          {visibleMessages.map((msg) => {
+          {messages.map((msg) => {
             const mine = msg.sender?.id === user.id;
             return (
               <article key={msg.id} className={mine ? "message mine" : "message"}>
@@ -430,10 +546,11 @@ export default function App() {
           <input
             value={messageText}
             onChange={(event) => setMessageText(event.target.value)}
-            placeholder="Type your message..."
+            placeholder={activeChatUser ? `Message ${activeChatUser.username}...` : "Select a person first"}
             maxLength={1000}
+            disabled={!activeChatUser}
           />
-          <button type="submit">Send</button>
+          <button type="submit" disabled={!activeChatUser}>Send</button>
         </form>
 
         {chatError ? <p className="error chat-error">{chatError}</p> : null}

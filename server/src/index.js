@@ -57,15 +57,76 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 
-app.get("/api/messages", authMiddleware, async (req, res) => {
+app.get("/api/messages/previews", authMiddleware, async (req, res) => {
   try {
     const currentUser = await User.findById(req.user.userId).select("blockedUsers").lean();
     const blockedSet = new Set((currentUser?.blockedUsers || []).map((id) => id.toString()));
+    const currentUserId = String(req.user.userId);
 
-    const messages = await Message.find()
+    const messages = await Message.find({
+      $or: [{ sender: req.user.userId }, { recipient: req.user.userId }]
+    })
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean();
+
+    const latestByUser = new Map();
+
+    for (const msg of messages) {
+      const senderId = String(msg.sender || "");
+      const recipientId = String(msg.recipient || "");
+      const otherUserId = senderId === currentUserId ? recipientId : senderId;
+
+      if (!otherUserId || otherUserId === currentUserId) {
+        continue;
+      }
+
+      if (blockedSet.has(otherUserId) || latestByUser.has(otherUserId)) {
+        continue;
+      }
+
+      latestByUser.set(otherUserId, {
+        userId: otherUserId,
+        content: msg.content,
+        createdAt: msg.createdAt,
+        isMine: senderId === currentUserId
+      });
+    }
+
+    res.json({ previews: Array.from(latestByUser.values()) });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to fetch message previews" });
+  }
+});
+
+app.get("/api/messages", authMiddleware, async (req, res) => {
+  try {
+    const otherUserId = String(req.query.userId || "").trim();
+    if (!otherUserId) {
+      return res.status(400).json({ message: "userId query param is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const currentUser = await User.findById(req.user.userId).select("blockedUsers").lean();
+    const blockedSet = new Set((currentUser?.blockedUsers || []).map((id) => id.toString()));
+
+    if (blockedSet.has(otherUserId)) {
+      return res.json({ messages: [] });
+    }
+
+    const messages = await Message.find({
+      $or: [
+        { sender: req.user.userId, recipient: otherUserId },
+        { sender: otherUserId, recipient: req.user.userId }
+      ]
+    })
       .sort({ createdAt: -1 })
       .limit(100)
       .populate("sender", "username")
+      .populate("recipient", "username")
       .lean();
 
     const normalized = messages
@@ -78,6 +139,10 @@ app.get("/api/messages", authMiddleware, async (req, res) => {
         sender: {
           id: msg.sender?._id,
           username: msg.sender?.username || "Unknown"
+        },
+        recipient: {
+          id: msg.recipient?._id,
+          username: msg.recipient?.username || "Unknown"
         }
       }));
 
@@ -118,6 +183,7 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const { userId, username } = socket.user;
+  socket.join(`user:${userId}`);
 
   onlineUsers.set(userId, username);
   io.emit("online_users", Array.from(onlineUsers.entries()).map(([id, name]) => ({ id, username: name })));
@@ -125,6 +191,7 @@ io.on("connection", (socket) => {
   socket.on("chat_message", async (payload, ack) => {
     try {
       const content = (payload?.content || "").trim();
+      const recipientId = String(payload?.recipientId || "").trim();
 
       if (!content) {
         if (typeof ack === "function") {
@@ -133,10 +200,35 @@ io.on("connection", (socket) => {
         return;
       }
 
+      if (!recipientId || recipientId === String(userId)) {
+        if (typeof ack === "function") {
+          ack({ ok: false, message: "Choose a valid recipient" });
+        }
+        return;
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(recipientId)) {
+        if (typeof ack === "function") {
+          ack({ ok: false, message: "Invalid recipient" });
+        }
+        return;
+      }
+
+      const recipientExists = await User.exists({ _id: recipientId });
+      if (!recipientExists) {
+        if (typeof ack === "function") {
+          ack({ ok: false, message: "Recipient does not exist" });
+        }
+        return;
+      }
+
       const saved = await Message.create({
         sender: userId,
+        recipient: recipientId,
         content
       });
+
+      const recipientUser = await User.findById(recipientId).select("username").lean();
 
       const message = {
         id: saved._id,
@@ -145,10 +237,14 @@ io.on("connection", (socket) => {
         sender: {
           id: userId,
           username
+        },
+        recipient: {
+          id: recipientId,
+          username: recipientUser?.username || "Unknown"
         }
       };
 
-      io.emit("new_message", message);
+      io.to(`user:${userId}`).to(`user:${recipientId}`).emit("new_message", message);
 
       if (typeof ack === "function") {
         ack({ ok: true });
