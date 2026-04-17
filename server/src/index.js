@@ -15,6 +15,50 @@ const authMiddleware = require("./middleware/auth");
 const app = express();
 const server = http.createServer(app);
 
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_KINDS = ["image", "video", "audio"];
+
+function normalizeAttachment(attachment) {
+  if (!attachment || typeof attachment !== "object") {
+    return null;
+  }
+
+  const kind = String(attachment.kind || "").trim();
+  const mimeType = String(attachment.mimeType || "").trim();
+  const dataUrl = String(attachment.dataUrl || "").trim();
+  const name = String(attachment.name || "").trim();
+  const size = Number(attachment.size || 0);
+
+  if (!ALLOWED_ATTACHMENT_KINDS.includes(kind)) {
+    return null;
+  }
+
+  if (!/^data:/.test(dataUrl) || !mimeType || !/^image\//.test(mimeType) && !/^video\//.test(mimeType) && !/^audio\//.test(mimeType)) {
+    return null;
+  }
+
+  if (size && size > MAX_ATTACHMENT_BYTES) {
+    return null;
+  }
+
+  if (kind === "image" && !mimeType.startsWith("image/")) return null;
+  if (kind === "video" && !mimeType.startsWith("video/")) return null;
+  if (kind === "audio" && !mimeType.startsWith("audio/")) return null;
+
+  return { kind, mimeType, dataUrl, name, size };
+}
+
+function attachmentPreviewText(attachment) {
+  if (!attachment?.kind) {
+    return "";
+  }
+
+  if (attachment.kind === "image") return "📷 Image";
+  if (attachment.kind === "video") return "🎥 Video";
+  if (attachment.kind === "audio") return "🎤 Voice note";
+  return "Attachment";
+}
+
 const PORT = process.env.PORT || 5000;
 const rawClientUrls = process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:5173";
 const allowedOrigins = rawClientUrls
@@ -87,9 +131,10 @@ app.get("/api/messages/previews", authMiddleware, async (req, res) => {
 
       latestByUser.set(otherUserId, {
         userId: otherUserId,
-        content: msg.content,
+        content: String(msg.content || attachmentPreviewText(msg.attachment) || ""),
         createdAt: msg.createdAt,
-        isMine: senderId === currentUserId
+        isMine: senderId === currentUserId,
+        attachment: msg.attachment || null
       });
     }
 
@@ -135,6 +180,7 @@ app.get("/api/messages", authMiddleware, async (req, res) => {
       .map((msg) => ({
         id: msg._id,
         content: msg.content,
+        attachment: msg.attachment || null,
         createdAt: msg.createdAt,
         sender: {
           id: msg.sender?._id,
@@ -192,8 +238,9 @@ io.on("connection", (socket) => {
     try {
       const content = (payload?.content || "").trim();
       const recipientId = String(payload?.recipientId || "").trim();
+      const attachment = normalizeAttachment(payload?.attachment);
 
-      if (!content) {
+      if (!content && !attachment) {
         if (typeof ack === "function") {
           ack({ ok: false, message: "Message cannot be empty" });
         }
@@ -225,7 +272,8 @@ io.on("connection", (socket) => {
       const saved = await Message.create({
         sender: userId,
         recipient: recipientId,
-        content
+        content,
+        attachment
       });
 
       const recipientUser = await User.findById(recipientId).select("username").lean();
@@ -233,6 +281,7 @@ io.on("connection", (socket) => {
       const message = {
         id: saved._id,
         content: saved.content,
+        attachment: saved.attachment || null,
         createdAt: saved.createdAt,
         sender: {
           id: userId,

@@ -14,12 +14,41 @@ const messageSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       maxlength: 1000
+    },
+    attachment: {
+      kind: {
+        type: String,
+        enum: ["image", "video", "audio"]
+      },
+      mimeType: {
+        type: String
+      },
+      dataUrl: {
+        type: String
+      },
+      name: {
+        type: String
+      },
+      size: {
+        type: Number
+      }
     }
   },
   { timestamps: true }
 );
+
+messageSchema.pre("validate", function (next) {
+  const hasContent = String(this.content || "").trim().length > 0;
+  const hasAttachment = Boolean(this.attachment?.dataUrl && this.attachment?.kind && this.attachment?.mimeType);
+
+  if (!hasContent && !hasAttachment) {
+    this.invalidate("content", "Message content or attachment is required");
+  }
+
+  next();
+});
 
 module.exports = mongoose.model("Message", messageSchema);

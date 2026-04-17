@@ -26,10 +26,114 @@
   box-sizing: border-box;
 }
 
+.message-attachment {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #111317;
+}
+
+.message-image {
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+}
+
+.message-video,
+.message-audio {
+  max-width: 100%;
+}
+
+.message-attachment-label {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: "Nunito Sans", sans-serif;
+  gap: 10px;
+}
+
+.composer-attachment-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(88, 101, 242, 0.12);
+  border: 1px solid rgba(88, 101, 242, 0.28);
+}
+
+.composer-attachment-preview > span {
+  color: #dfe4ff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.composer-remove-attachment {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  box-shadow: none;
+  font-size: 0.8rem;
+}
+
+.composer-main-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 10px;
+}
+
+.composer-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.composer-action-btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(88, 101, 242, 0.18);
+  border: 1px solid rgba(88, 101, 242, 0.4);
+  color: #dfe4ff;
+  box-shadow: none;
+  font-size: 0.82rem;
+}
+
+.composer-action-btn:hover {
+  transform: none;
+  background: rgba(88, 101, 242, 0.28);
+  box-shadow: none;
+}
+
+.composer-action-btn.recording {
+  background: rgba(218, 55, 60, 0.22);
+  border-color: rgba(218, 55, 60, 0.52);
+}
+
+.composer-action-btn.recording:hover {
+  background: rgba(218, 55, 60, 0.32);
+}
+
+.composer input {
+  width: 100%;
+}
+
+.composer button[type="submit"] {
+  min-height: 44px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  gap: 10px;
   color: var(--text);
   background: linear-gradient(180deg, var(--bg-0), var(--bg-2));
   position: relative;
@@ -684,7 +788,6 @@ button:disabled {
 
 .composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px;
   gap: 10px;
 }
 
@@ -985,6 +1088,10 @@ button:disabled {
   }
 
   .composer {
+    gap: 8px;
+  }
+
+  .composer-main-row {
     grid-template-columns: minmax(0, 1fr) 88px;
     gap: 8px;
   }

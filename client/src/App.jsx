@@ -68,6 +68,52 @@ function formatLastSeen(value) {
   return `Last seen ${diffDays} days ago`;
 }
 
+function attachmentPreviewLabel(kind) {
+  if (kind === "image") return "Image";
+  if (kind === "video") return "Video";
+  if (kind === "audio") return "Voice note";
+  return "Attachment";
+}
+
+function isSupportedAttachment(file) {
+  return Boolean(file && (file.type.startsWith("image/") || file.type.startsWith("video/") || file.type.startsWith("audio/")));
+}
+
+function renderAttachment(attachment) {
+  if (!attachment?.dataUrl || !attachment?.kind) {
+    return null;
+  }
+
+  if (attachment.kind === "image") {
+    return <img className="message-attachment message-image" src={attachment.dataUrl} alt={attachment.name || "Attached image"} />;
+  }
+
+  if (attachment.kind === "video") {
+    return (
+      <video className="message-attachment message-video" controls src={attachment.dataUrl}>
+        Your browser does not support the video tag.
+      </video>
+    );
+  }
+
+  if (attachment.kind === "audio") {
+    return <audio className="message-attachment message-audio" controls src={attachment.dataUrl} />;
+  }
+
+  return null;
+}
+
+function attachmentSummaryText(attachment) {
+  if (!attachment?.kind) {
+    return "";
+  }
+
+  if (attachment.kind === "image") return "📷 Image";
+  if (attachment.kind === "video") return "🎥 Video";
+  if (attachment.kind === "audio") return "🎤 Voice note";
+  return "Attachment";
+}
+
 export default function App() {
   const [mode, setMode] = useState("login");
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -102,6 +148,9 @@ export default function App() {
   const [messagePreviews, setMessagePreviews] = useState({});
   const [activeChatUserId, setActiveChatUserId] = useState("");
   const [messageText, setMessageText] = useState("");
+  const [pendingAttachment, setPendingAttachment] = useState(null);
+  const [attachmentError, setAttachmentError] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
   const [chatError, setChatError] = useState("");
   const [kickTarget, setKickTarget] = useState(null);
   const [kickLoading, setKickLoading] = useState(false);
@@ -112,6 +161,9 @@ export default function App() {
 
   const socketRef = useRef(null);
   const endRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const recorderRef = useRef(null);
+  const recordingChunksRef = useRef([]);
   const blockedIdsRef = useRef(new Set());
 
   const isAuthed = Boolean(token && user);
@@ -231,7 +283,7 @@ export default function App() {
     setMessagePreviews((current) => ({
       ...current,
       [otherUserId]: {
-        content: message?.content || "",
+        content: message?.content?.trim() || attachmentSummaryText(message?.attachment),
         createdAt: message?.createdAt || new Date().toISOString(),
         isMine: senderId === me
       }
@@ -241,6 +293,14 @@ export default function App() {
   useEffect(() => {
     blockedIdsRef.current = blockedUserIds;
   }, [blockedUserIds]);
+
+  useEffect(() => {
+    return () => {
+      if (recorderRef.current && recorderRef.current.state !== "inactive") {
+        recorderRef.current.stop();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!messages.length) {
@@ -346,7 +406,7 @@ export default function App() {
               }
 
               acc[id] = {
-                content: typeof item?.content === "string" ? item.content : "",
+                content: typeof item?.content === "string" ? item.content : attachmentSummaryText(item?.attachment),
                 createdAt: item?.createdAt || "",
                 isMine: Boolean(item?.isMine)
               };
@@ -549,6 +609,123 @@ export default function App() {
     }
   }
 
+  function clearPendingAttachment() {
+    setPendingAttachment(null);
+    setAttachmentError("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  async function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Unable to read file"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleAttachmentSelect(event) {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!isSupportedAttachment(file)) {
+      setAttachmentError("Only image, video, or audio files are supported");
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      setAttachmentError("Attachment must be 20MB or smaller");
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setPendingAttachment({
+        kind: file.type.startsWith("image/")
+          ? "image"
+          : file.type.startsWith("video/")
+            ? "video"
+            : "audio",
+        mimeType: file.type,
+        dataUrl,
+        name: file.name,
+        size: file.size
+      });
+      setAttachmentError("");
+    } catch (error) {
+      setAttachmentError(toFriendlyNetworkError(error, "Failed to load attachment"));
+    }
+  }
+
+  function stopRecording() {
+    const recorder = recorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }
+
+  async function toggleVoiceNote() {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof window.MediaRecorder === "undefined") {
+      setAttachmentError("Voice notes are not supported in this browser");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      recorderRef.current = recorder;
+      recordingChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const chunks = recordingChunksRef.current;
+        stream.getTracks().forEach((track) => track.stop());
+        recorderRef.current = null;
+        setIsRecording(false);
+
+        if (!chunks.length) {
+          return;
+        }
+
+        const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
+        if (blob.size > 20 * 1024 * 1024) {
+          setAttachmentError("Voice note must be 20MB or smaller");
+          return;
+        }
+
+        const dataUrl = await fileToDataUrl(blob);
+        setPendingAttachment({
+          kind: "audio",
+          mimeType: blob.type || "audio/webm",
+          dataUrl,
+          name: "voice-note.webm",
+          size: blob.size
+        });
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setAttachmentError("");
+    } catch (error) {
+      setAttachmentError(toFriendlyNetworkError(error, "Unable to access microphone"));
+      setIsRecording(false);
+    }
+  }
+
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -568,17 +745,22 @@ export default function App() {
     setChatError("");
 
     const content = messageText.trim();
-    if (!content || !socketRef.current || !activeChatUserId) {
+    if ((!content && !pendingAttachment) || !socketRef.current || !activeChatUserId) {
       return;
     }
 
-    socketRef.current.emit("chat_message", { content, recipientId: activeChatUserId }, (response) => {
+    socketRef.current.emit("chat_message", {
+      content,
+      recipientId: activeChatUserId,
+      attachment: pendingAttachment
+    }, (response) => {
       if (!response?.ok) {
         setChatError(response?.message || "Failed to send message");
       }
     });
 
     setMessageText("");
+    clearPendingAttachment();
   }
 
   async function confirmKickTarget() {
@@ -750,7 +932,7 @@ export default function App() {
             <input
               value={friendSearch}
               onChange={(event) => setFriendSearch(event.target.value)}
-              placeholder="Search your friends to start a chat"
+              placeholder="Search users to add friend"
               maxLength={40}
             />
             {friendSearchLoading ? <p className="friend-search-note">Searching...</p> : null}
@@ -851,13 +1033,21 @@ export default function App() {
           </p>
         </header>
 
+        {isRecording ? <p className="voice-note-status">Recording voice note...</p> : null}
+
         <div className="messages">
           {messages.map((msg) => {
             const mine = msg.sender?.id === user.id;
+            const messageAttachment = msg.attachment || null;
+            const isAudio = messageAttachment?.kind === "audio";
             return (
               <article key={msg.id} className={mine ? "message mine" : "message"}>
                 <h4>{msg.sender?.username || "Unknown"}</h4>
                 <p>{msg.content}</p>
+                {renderAttachment(messageAttachment)}
+                {!msg.content && messageAttachment && isAudio ? (
+                  <span className="message-attachment-label">Voice note</span>
+                ) : null}
                 <time>{new Date(msg.createdAt).toLocaleTimeString()}</time>
               </article>
             );
@@ -866,14 +1056,42 @@ export default function App() {
         </div>
 
         <form className="composer" onSubmit={sendMessage}>
-          <input
-            value={messageText}
-            onChange={(event) => setMessageText(event.target.value)}
-            placeholder={activeChatUser ? `Message ${activeChatUser.username}...` : "Select a person first"}
-            maxLength={1000}
-            disabled={!activeChatUser}
-          />
-          <button type="submit" disabled={!activeChatUser}>Send</button>
+          {pendingAttachment ? (
+            <div className="composer-attachment-preview">
+              <span>{attachmentPreviewLabel(pendingAttachment.kind)}</span>
+              <button type="button" className="composer-remove-attachment" onClick={clearPendingAttachment}>
+                Remove
+              </button>
+            </div>
+          ) : null}
+          {attachmentError ? <p className="error chat-error">{attachmentError}</p> : null}
+          <div className="composer-main-row">
+            <input
+              value={messageText}
+              onChange={(event) => setMessageText(event.target.value)}
+              placeholder={activeChatUser ? `Message ${activeChatUser.username}...` : "Select a person first"}
+              maxLength={1000}
+              disabled={!activeChatUser}
+            />
+            <button type="submit" disabled={!activeChatUser || (!messageText.trim() && !pendingAttachment)}>
+              Send
+            </button>
+          </div>
+          <div className="composer-actions">
+            <button type="button" className="composer-action-btn" onClick={() => fileInputRef.current?.click()} disabled={!activeChatUser}>
+              Image / Video
+            </button>
+            <button type="button" className={isRecording ? "composer-action-btn recording" : "composer-action-btn"} onClick={toggleVoiceNote} disabled={!activeChatUser}>
+              {isRecording ? "Stop voice note" : "Voice note"}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              hidden
+              onChange={handleAttachmentSelect}
+            />
+          </div>
         </form>
 
         {chatError ? <p className="error chat-error">{chatError}</p> : null}
