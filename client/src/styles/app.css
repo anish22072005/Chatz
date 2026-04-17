@@ -358,6 +358,72 @@ button:disabled {
   gap: 10px;
 }
 
+.friend-search {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.friend-search input {
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.friend-search-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.friend-search-results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.friend-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.friend-search-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.friend-search-user span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-friend-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(88, 101, 242, 0.24);
+  border: 1px solid rgba(88, 101, 242, 0.58);
+  color: #e4e7ff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.add-friend-btn:hover {
+  transform: none;
+  background: rgba(88, 101, 242, 0.34);
+  box-shadow: none;
+}
+
 .user-status-row {
   display: flex;
   align-items: stretch;

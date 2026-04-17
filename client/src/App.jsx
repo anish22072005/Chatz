@@ -105,6 +105,10 @@ export default function App() {
   const [chatError, setChatError] = useState("");
   const [kickTarget, setKickTarget] = useState(null);
   const [kickLoading, setKickLoading] = useState(false);
+  const [friendSearch, setFriendSearch] = useState("");
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [friendSearchLoading, setFriendSearchLoading] = useState(false);
+  const [addingFriendId, setAddingFriendId] = useState("");
 
   const socketRef = useRef(null);
   const endRef = useRef(null);
@@ -129,6 +133,49 @@ export default function App() {
       setMobileSidebarOpen(false);
     }
   }, [isAuthed]);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      setFriendSearchResults([]);
+      return undefined;
+    }
+
+    const query = friendSearch.trim();
+    if (!query) {
+      setFriendSearchResults([]);
+      setFriendSearchLoading(false);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(async () => {
+      setFriendSearchLoading(true);
+      try {
+        const response = await fetch(`${API_URL}/api/auth/users/search?query=${encodeURIComponent(query)}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to search users");
+        }
+        const users = Array.isArray(data.users) ? data.users : [];
+        setFriendSearchResults(users.map((item) => ({
+          id: String(item?.id || ""),
+          username: typeof item?.username === "string" ? item.username : "",
+          lastSeenAt: item?.lastSeenAt || null,
+          avatarStyle: item?.avatarStyle || "micah",
+          avatarUrl: item?.avatarUrl || buildAvatarUrl(item?.id || item?.username, item?.avatarStyle || "micah")
+        })));
+      } catch (error) {
+        setChatError(toFriendlyNetworkError(error, "Failed to search users"));
+      } finally {
+        setFriendSearchLoading(false);
+      }
+    }, 260);
+
+    return () => window.clearTimeout(timer);
+  }, [friendSearch, isAuthed, token]);
 
   const usersWithStatus = useMemo(() => {
     const safeOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
@@ -452,6 +499,56 @@ export default function App() {
     }
   }
 
+  async function addFriend(targetUser) {
+    const targetId = String(targetUser?.id || "").trim();
+    if (!targetId || !token) {
+      return;
+    }
+
+    setAddingFriendId(targetId);
+    setChatError("");
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/friends/${targetId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to add friend");
+      }
+
+      const friend = data?.user
+        ? {
+            id: String(data.user.id || ""),
+            username: typeof data.user.username === "string" ? data.user.username : "",
+            lastSeenAt: data.user.lastSeenAt || null,
+            avatarStyle: data.user.avatarStyle || "micah",
+            avatarUrl: data.user.avatarUrl || buildAvatarUrl(data.user.id || data.user.username, data.user.avatarStyle || "micah"),
+            isBlocked: false
+          }
+        : null;
+
+      if (friend?.id) {
+        setAllUsers((current) => {
+          if (current.some((item) => String(item.id) === String(friend.id))) {
+            return current;
+          }
+          return [...current, friend].sort((a, b) => String(a.username || "").localeCompare(String(b.username || "")));
+        });
+        setFriendSearchResults((current) => current.filter((item) => String(item.id) !== String(friend.id)));
+        setFriendSearch("");
+        setWelcomeMessage(`Added ${friend.username}`);
+      }
+    } catch (error) {
+      setChatError(toFriendlyNetworkError(error, "Failed to add friend"));
+    } finally {
+      setAddingFriendId("");
+    }
+  }
+
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -493,8 +590,8 @@ export default function App() {
     setChatError("");
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/users/${kickTarget.id}/block`, {
-        method: "POST",
+      const response = await fetch(`${API_URL}/api/auth/friends/${kickTarget.id}`, {
+        method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -505,13 +602,7 @@ export default function App() {
         throw new Error(data.message || "Failed to kick out user");
       }
 
-      setAllUsers((current) =>
-        current.map((item) =>
-          String(item.id) === String(kickTarget.id)
-            ? { ...item, isBlocked: true }
-            : item
-        )
-      );
+      setAllUsers((current) => current.filter((item) => String(item.id) !== String(kickTarget.id)));
       setMessages((current) =>
         current.filter((msg) => String(msg?.sender?.id || "") !== String(kickTarget.id))
       );
@@ -655,6 +746,38 @@ export default function App() {
         </div>
         <div>
           <h3>Chats</h3>
+          <div className="friend-search">
+            <input
+              value={friendSearch}
+              onChange={(event) => setFriendSearch(event.target.value)}
+              placeholder="Search users to add friend"
+              maxLength={40}
+            />
+            {friendSearchLoading ? <p className="friend-search-note">Searching...</p> : null}
+            {!friendSearchLoading && friendSearch.trim() && !friendSearchResults.length ? (
+              <p className="friend-search-note">No users found</p>
+            ) : null}
+            {friendSearchResults.length ? (
+              <ul className="friend-search-results">
+                {friendSearchResults.map((item) => (
+                  <li key={item.id} className="friend-search-row">
+                    <div className="friend-search-user">
+                      <img className="user-avatar" src={item.avatarUrl} alt="" />
+                      <span>{item.username}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="add-friend-btn"
+                      onClick={() => addFriend(item)}
+                      disabled={addingFriendId === item.id}
+                    >
+                      {addingFriendId === item.id ? "Adding..." : "Add"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
           <ul>
             {chatCandidates.map((u) => (
               <li key={u.id} className="user-status-row">

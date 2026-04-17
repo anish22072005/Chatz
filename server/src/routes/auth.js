@@ -26,6 +26,21 @@ function buildAvatarUrl(user) {
   return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
 }
 
+function toPublicUser(item) {
+  return {
+    id: String(item._id),
+    username: item.username,
+    lastSeenAt: item.lastSeenAt || null,
+    avatarStyle: item.avatarStyle,
+    avatarUrl: buildAvatarUrl(item),
+    isBlocked: false
+  };
+}
+
+function escapeRegex(value) {
+  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function signToken(user) {
   return jwt.sign(
     { userId: user._id.toString(), username: user.username },
@@ -167,26 +182,93 @@ router.patch("/me/avatar", authMiddleware, async (req, res) => {
 
 router.get("/users", authMiddleware, async (_req, res) => {
   try {
-    const currentUser = await User.findById(_req.user.userId).select("blockedUsers").lean();
+    const currentUser = await User.findById(_req.user.userId).select("friends").lean();
     if (!currentUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const blockedSet = new Set((currentUser.blockedUsers || []).map((id) => id.toString()));
-    const users = await User.find().sort({ username: 1 }).select("_id username lastSeenAt avatarStyle").lean();
+    const friendIds = (currentUser.friends || []).map((id) => id.toString());
+    const users = friendIds.length
+      ? await User.find({ _id: { $in: friendIds } })
+        .sort({ username: 1 })
+        .select("_id username lastSeenAt avatarStyle")
+        .lean()
+      : [];
 
     return res.json({
-      users: users.map((item) => ({
-        id: item._id.toString(),
-        username: item.username,
-        lastSeenAt: item.lastSeenAt,
-        avatarStyle: item.avatarStyle,
-        avatarUrl: buildAvatarUrl(item),
-        isBlocked: blockedSet.has(item._id.toString())
-      }))
+      users: users.map((item) => toPublicUser(item))
     });
   } catch (error) {
     return res.status(500).json({ message: "Unable to fetch users" });
+  }
+});
+
+router.get("/users/search", authMiddleware, async (req, res) => {
+  try {
+    const query = String(req.query.query || "").trim();
+    if (query.length < 1) {
+      return res.json({ users: [] });
+    }
+
+    const currentUser = await User.findById(req.user.userId).select("friends").lean();
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const excludedIds = new Set([String(req.user.userId), ...(currentUser.friends || []).map((id) => String(id))]);
+    const regex = new RegExp(escapeRegex(query), "i");
+
+    const users = await User.find({ username: regex })
+      .select("_id username lastSeenAt avatarStyle")
+      .sort({ username: 1 })
+      .limit(20)
+      .lean();
+
+    const filtered = users.filter((item) => !excludedIds.has(String(item._id)));
+    return res.json({ users: filtered.map((item) => toPublicUser(item)) });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to search users" });
+  }
+});
+
+router.post("/friends/:id", authMiddleware, async (req, res) => {
+  try {
+    const currentUserId = String(req.user.userId);
+    const targetId = String(req.params.id || "").trim();
+
+    if (!targetId || targetId === currentUserId) {
+      return res.status(400).json({ message: "Choose a valid user" });
+    }
+
+    const targetUser = await User.findById(targetId).select("_id username lastSeenAt avatarStyle").lean();
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await User.findByIdAndUpdate(currentUserId, { $addToSet: { friends: targetId } });
+    await User.findByIdAndUpdate(targetId, { $addToSet: { friends: currentUserId } });
+
+    return res.json({ ok: true, user: toPublicUser(targetUser) });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to add friend" });
+  }
+});
+
+router.delete("/friends/:id", authMiddleware, async (req, res) => {
+  try {
+    const currentUserId = String(req.user.userId);
+    const targetId = String(req.params.id || "").trim();
+
+    if (!targetId || targetId === currentUserId) {
+      return res.status(400).json({ message: "Choose a valid user" });
+    }
+
+    await User.findByIdAndUpdate(currentUserId, { $pull: { friends: targetId } });
+    await User.findByIdAndUpdate(targetId, { $pull: { friends: currentUserId } });
+
+    return res.json({ ok: true, removedUserId: targetId });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to remove friend" });
   }
 });
 
