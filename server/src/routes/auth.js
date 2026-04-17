@@ -6,6 +6,11 @@ const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 
+function buildAvatarUrl(user) {
+  const seed = encodeURIComponent(String(user?._id || user?.username || "user").trim());
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=5865f2,4752c4,2b2d31,232428&textColor=ffffff&fontSize=46&radius=50`;
+}
+
 function signToken(user) {
   return jwt.sign(
     { userId: user._id.toString(), username: user.username },
@@ -45,7 +50,13 @@ router.post("/register", async (req, res) => {
 
     return res.status(201).json({
       token,
-      user: { id: user._id, username: user.username, email: user.email, lastSeenAt: user.lastSeenAt }
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        lastSeenAt: user.lastSeenAt,
+        avatarUrl: buildAvatarUrl(user)
+      }
     });
   } catch (error) {
     return res.status(500).json({ message: "Registration failed" });
@@ -80,7 +91,13 @@ router.post("/login", async (req, res) => {
 
     return res.json({
       token,
-      user: { id: user._id, username: user.username, email: user.email, lastSeenAt: user.lastSeenAt }
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        lastSeenAt: user.lastSeenAt,
+        avatarUrl: buildAvatarUrl(user)
+      }
     });
   } catch (error) {
     return res.status(500).json({ message: "Login failed" });
@@ -95,7 +112,7 @@ router.get("/me", authMiddleware, async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.json({ user });
+    return res.json({ user: { ...user.toObject(), avatarUrl: buildAvatarUrl(user) } });
   } catch (error) {
     return res.status(500).json({ message: "Unable to get user" });
   }
@@ -116,6 +133,7 @@ router.get("/users", authMiddleware, async (_req, res) => {
         id: item._id.toString(),
         username: item.username,
         lastSeenAt: item.lastSeenAt,
+        avatarUrl: buildAvatarUrl(item),
         isBlocked: blockedSet.has(item._id.toString())
       }))
     });

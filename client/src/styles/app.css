@@ -262,6 +262,18 @@ button:disabled {
   margin: 0 0 10px;
 }
 
+.current-user-card {
+  display: grid;
+  gap: 10px;
+}
+
+.current-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .pill {
   margin: 0;
   display: inline-block;
@@ -317,6 +329,29 @@ button:disabled {
   align-items: center;
   gap: 10px;
   min-width: 0;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.14);
+  background: #1e1f22;
+}
+
+.chat-header-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.chat-header-avatar {
+  width: 42px;
+  height: 42px;
 }
 
 .chat-user-meta {

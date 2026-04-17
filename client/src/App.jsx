@@ -31,6 +31,11 @@ function FormField({ label, type = "text", value, onChange, placeholder }) {
   );
 }
 
+function buildAvatarUrl(seed) {
+  const safeSeed = encodeURIComponent(String(seed || "user").trim() || "user");
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${safeSeed}&backgroundColor=5865f2,4752c4,2b2d31,232428&textColor=ffffff&fontSize=46&radius=50`;
+}
+
 function formatLastSeen(value) {
   const date = value ? new Date(value) : null;
 
@@ -118,7 +123,8 @@ export default function App() {
           username: name || "Unknown user",
           isOnline: onlineIds.has(String(u?.id || "")),
           isBlocked: Boolean(u?.isBlocked),
-          lastSeenAt: u?.lastSeenAt || null
+            lastSeenAt: u?.lastSeenAt || null,
+            avatarUrl: u?.avatarUrl || buildAvatarUrl(u?.id || name)
         };
       })
       .sort((a, b) => a.username.localeCompare(b.username));
@@ -235,6 +241,7 @@ export default function App() {
               id: String(item?.id || ""),
               username: typeof item?.username === "string" ? item.username : "",
               lastSeenAt: item?.lastSeenAt || null,
+              avatarUrl: item?.avatarUrl || buildAvatarUrl(item?.id || item?.username),
               isBlocked: Boolean(item?.isBlocked)
             }))
           : [];
@@ -358,9 +365,9 @@ export default function App() {
       }
 
       setToken(data.token);
-      setUser(data.user);
+      setUser({ ...data.user, avatarUrl: data.user?.avatarUrl || buildAvatarUrl(data.user?.id || data.user?.username) });
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify({ ...data.user, avatarUrl: data.user?.avatarUrl || buildAvatarUrl(data.user?.id || data.user?.username) }));
       setWelcomeMessage(mode === "register" ? `Welcome, ${data.user.username}!` : `Welcome back, ${data.user.username}!`);
 
       setPassword("");
@@ -517,9 +524,12 @@ export default function App() {
   return (
     <main className="chat-page">
       <aside className="sidebar">
-        <div>
+        <div className="current-user-card">
           <h2>Logged in as</h2>
-          <p className="pill">{user.username}</p>
+          <div className="current-user-row">
+            <img className="user-avatar" src={user.avatarUrl || buildAvatarUrl(user.id || user.username)} alt="" />
+            <p className="pill">{user.username}</p>
+          </div>
         </div>
         <div>
           <h3>Chats</h3>
@@ -532,6 +542,7 @@ export default function App() {
                   onClick={() => setActiveChatUserId(String(u.id))}
                 >
                   <div className="user-status-main">
+                    <img className="user-avatar" src={u.avatarUrl || buildAvatarUrl(u.id || u.username)} alt="" />
                     <span
                       className={u.isOnline ? "status-dot online" : "status-dot offline"}
                       aria-label={u.isOnline ? "online" : "offline"}
@@ -565,7 +576,12 @@ export default function App() {
       <section className="chat-shell">
         {welcomeMessage ? <p className="welcome-banner">{welcomeMessage}</p> : null}
         <header>
-          <h1>{activeChatUser ? `Chat with ${activeChatUser.username}` : "Select someone to chat"}</h1>
+          <div className="chat-header-user">
+            {activeChatUser ? (
+              <img className="chat-header-avatar user-avatar" src={activeChatUser.avatarUrl || buildAvatarUrl(activeChatUser.id || activeChatUser.username)} alt="" />
+            ) : null}
+            <h1>{activeChatUser ? `Chat with ${activeChatUser.username}` : "Select someone to chat"}</h1>
+          </div>
           <p>
             {activeChatUser
               ? `${messages.length} messages in this conversation`
