@@ -169,6 +169,10 @@ export default function App() {
   }, [blockedUserIds]);
 
   useEffect(() => {
+    if (!messages.length) {
+      return;
+    }
+
     if (endRef.current) {
       endRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
