@@ -45,7 +45,7 @@ router.post("/register", async (req, res) => {
 
     return res.status(201).json({
       token,
-      user: { id: user._id, username: user.username, email: user.email }
+      user: { id: user._id, username: user.username, email: user.email, lastSeenAt: user.lastSeenAt }
     });
   } catch (error) {
     return res.status(500).json({ message: "Registration failed" });
@@ -80,7 +80,7 @@ router.post("/login", async (req, res) => {
 
     return res.json({
       token,
-      user: { id: user._id, username: user.username, email: user.email }
+      user: { id: user._id, username: user.username, email: user.email, lastSeenAt: user.lastSeenAt }
     });
   } catch (error) {
     return res.status(500).json({ message: "Login failed" });
@@ -89,7 +89,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("_id username email");
+    const user = await User.findById(req.user.userId).select("_id username email lastSeenAt");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -109,12 +109,13 @@ router.get("/users", authMiddleware, async (_req, res) => {
     }
 
     const blockedSet = new Set((currentUser.blockedUsers || []).map((id) => id.toString()));
-    const users = await User.find().sort({ username: 1 }).select("_id username").lean();
+    const users = await User.find().sort({ username: 1 }).select("_id username lastSeenAt").lean();
 
     return res.json({
       users: users.map((item) => ({
         id: item._id.toString(),
         username: item.username,
+        lastSeenAt: item.lastSeenAt,
         isBlocked: blockedSet.has(item._id.toString())
       }))
     });

@@ -31,6 +31,40 @@ function FormField({ label, type = "text", value, onChange, placeholder }) {
   );
 }
 
+function formatLastSeen(value) {
+  if (!value) {
+    return "Last seen: unavailable";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Last seen: unavailable";
+  }
+
+  const now = new Date();
+  const isSameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+  const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+  if (isSameDay) {
+    return `Last seen today at ${time}`;
+  }
+
+  if (isYesterday) {
+    return `Last seen yesterday at ${time}`;
+  }
+
+  return `Last seen ${date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} at ${time}`;
+}
+
 export default function App() {
   const [mode, setMode] = useState("login");
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -53,6 +87,7 @@ export default function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [welcomeMessage, setWelcomeMessage] = useState("");
 
   const [messages, setMessages] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -70,6 +105,18 @@ export default function App() {
 
   const isAuthed = Boolean(token && user);
 
+  useEffect(() => {
+    if (!welcomeMessage) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setWelcomeMessage("");
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [welcomeMessage]);
+
   const usersWithStatus = useMemo(() => {
     const safeOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
     const onlineIds = new Set(safeOnlineUsers.map((u) => String(u?.id || "")));
@@ -82,7 +129,8 @@ export default function App() {
           id: String(u?.id || name || `unknown-${index}`),
           username: name || "Unknown user",
           isOnline: onlineIds.has(String(u?.id || "")),
-          isBlocked: Boolean(u?.isBlocked)
+          isBlocked: Boolean(u?.isBlocked),
+          lastSeenAt: u?.lastSeenAt || null
         };
       })
       .sort((a, b) => a.username.localeCompare(b.username));
@@ -192,10 +240,11 @@ export default function App() {
         }
         const normalizedUsers = Array.isArray(data.users)
           ? data.users.map((item) => ({
-            id: String(item?.id || ""),
-            username: typeof item?.username === "string" ? item.username : "",
-            isBlocked: Boolean(item?.isBlocked)
-          }))
+              id: String(item?.id || ""),
+              username: typeof item?.username === "string" ? item.username : "",
+              lastSeenAt: item?.lastSeenAt || null,
+              isBlocked: Boolean(item?.isBlocked)
+            }))
           : [];
         setAllUsers(normalizedUsers);
       } catch (error) {
@@ -223,19 +272,19 @@ export default function App() {
 
         const normalized = Array.isArray(data.previews)
           ? data.previews.reduce((acc, item) => {
-            const id = String(item?.userId || "");
-            if (!id) {
+              const id = String(item?.userId || "");
+              if (!id) {
+                return acc;
+              }
+
+              acc[id] = {
+                content: typeof item?.content === "string" ? item.content : "",
+                createdAt: item?.createdAt || "",
+                isMine: Boolean(item?.isMine)
+              };
+
               return acc;
-            }
-
-            acc[id] = {
-              content: typeof item?.content === "string" ? item.content : "",
-              createdAt: item?.createdAt || "",
-              isMine: Boolean(item?.isMine)
-            };
-
-            return acc;
-          }, {})
+            }, {})
           : {};
 
         setMessagePreviews(normalized);
@@ -320,6 +369,7 @@ export default function App() {
       setUser(data.user);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      setWelcomeMessage(mode === "register" ? `Welcome, ${data.user.username}!` : `Welcome back, ${data.user.username}!`);
 
       setPassword("");
       setEmail("");
@@ -341,6 +391,7 @@ export default function App() {
     setMessagePreviews({});
     setActiveChatUserId("");
     setChatError("");
+    setWelcomeMessage("");
   }
 
   function sendMessage(event) {
@@ -497,9 +548,10 @@ export default function App() {
                     <div className="chat-user-meta">
                       <span className="chat-user-name">{u.username}</span>
                       <span className="chat-user-preview">
+                        {u.isOnline ? "Online now" : formatLastSeen(u.lastSeenAt)}
                         {messagePreviews[u.id]
-                          ? `${messagePreviews[u.id].isMine ? "You: " : ""}${messagePreviews[u.id].content}`
-                          : "No messages yet"}
+                          ? ` • ${messagePreviews[u.id].isMine ? "You: " : ""}${messagePreviews[u.id].content}`
+                          : ""}
                       </span>
                     </div>
                   </div>
@@ -519,6 +571,7 @@ export default function App() {
       </aside>
 
       <section className="chat-shell">
+          {welcomeMessage ? <p className="welcome-banner">{welcomeMessage}</p> : null}
         <header>
           <h1>{activeChatUser ? `Chat with ${activeChatUser.username}` : "Select someone to chat"}</h1>
           <p>

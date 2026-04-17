@@ -402,6 +402,16 @@ button:disabled {
   min-height: 90vh;
 }
 
+.welcome-banner {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(88, 101, 242, 0.16);
+  border: 1px solid rgba(88, 101, 242, 0.34);
+  color: #e3e7ff;
+  font-weight: 700;
+}
+
 .chat-shell header h1 {
   margin: 0;
 }

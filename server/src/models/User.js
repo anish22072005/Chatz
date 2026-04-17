@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    lastSeenAt: {
+      type: Date,
+      default: null
+    },
     blockedUsers: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       default: []

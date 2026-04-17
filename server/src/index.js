@@ -257,6 +257,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    User.findByIdAndUpdate(userId, { $set: { lastSeenAt: new Date() } }).catch(() => {});
     onlineUsers.delete(userId);
     io.emit("online_users", Array.from(onlineUsers.entries()).map(([id, name]) => ({ id, username: name })));
   });
