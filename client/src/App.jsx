@@ -33,7 +33,7 @@ function FormField({ label, type = "text", value, onChange, placeholder }) {
 
 function buildAvatarUrl(seed) {
   const safeSeed = encodeURIComponent(String(seed || "user").trim() || "user");
-  return `https://api.dicebear.com/7.x/micah/svg?seed=${safeSeed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
+  return `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${safeSeed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
 }
 
 function formatLastSeen(value) {

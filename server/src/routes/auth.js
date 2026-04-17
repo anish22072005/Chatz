@@ -8,7 +8,7 @@ const router = express.Router();
 
 function buildAvatarUrl(user) {
   const seed = encodeURIComponent(String(user?._id || user?.username || "user").trim());
-  return `https://api.dicebear.com/7.x/micah/svg?seed=${seed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
+  return `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${seed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
 }
 
 function signToken(user) {
