@@ -181,6 +181,7 @@ app.get("/api/messages", authMiddleware, async (req, res) => {
         id: msg._id,
         content: msg.content,
         attachment: msg.attachment || null,
+        reactions: msg.reactions || [],
         createdAt: msg.createdAt,
         sender: {
           id: msg.sender?._id,
@@ -282,6 +283,7 @@ io.on("connection", (socket) => {
         id: saved._id,
         content: saved.content,
         attachment: saved.attachment || null,
+        reactions: saved.reactions || [],
         createdAt: saved.createdAt,
         sender: {
           id: userId,
@@ -301,6 +303,69 @@ io.on("connection", (socket) => {
     } catch (error) {
       if (typeof ack === "function") {
         ack({ ok: false, message: "Failed to send message" });
+      }
+    }
+  });
+
+  socket.on("react_to_message", async (payload, ack) => {
+    try {
+      const messageId = String(payload?.messageId || "").trim();
+      const emoji = String(payload?.emoji || "").trim();
+
+      if (!messageId || !emoji) {
+        if (typeof ack === "function") {
+          ack({ ok: false, message: "Message ID and emoji are required" });
+        }
+        return;
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(messageId)) {
+        if (typeof ack === "function") {
+          ack({ ok: false, message: "Invalid message ID" });
+        }
+        return;
+      }
+
+      const message = await Message.findById(messageId);
+      if (!message) {
+        if (typeof ack === "function") {
+          ack({ ok: false, message: "Message not found" });
+        }
+        return;
+      }
+
+      // Find or create reaction
+      let reaction = message.reactions.find((r) => r.emoji === emoji);
+      if (!reaction) {
+        message.reactions.push({ emoji, users: [userId] });
+      } else {
+        const userIndex = reaction.users.indexOf(userId);
+        if (userIndex > -1) {
+          reaction.users.splice(userIndex, 1);
+          if (reaction.users.length === 0) {
+            message.reactions = message.reactions.filter((r) => r.emoji !== emoji);
+          }
+        } else {
+          reaction.users.push(userId);
+        }
+      }
+
+      await message.save();
+
+      const updated = {
+        id: message._id,
+        reactions: message.reactions
+      };
+
+      // Broadcast reaction update to both users in the conversation
+      io.to(`user:${message.sender}`).to(`user:${message.recipient}`).emit("message_reaction_update", updated);
+
+      if (typeof ack === "function") {
+        ack({ ok: true });
+      }
+    } catch (error) {
+      if (typeof ack === "function") {
+        ack({ ok: false, message: "Failed to react to message" });
       }
     }
   });

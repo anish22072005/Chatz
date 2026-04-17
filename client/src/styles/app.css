@@ -695,6 +695,28 @@ button:disabled {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
+.voice-note-status {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: #e3e7ff;
+  font-weight: 600;
+  position: absolute;
+  bottom: 310px;
+  left: 16px;
+  right: 16px;
+  border-radius: 10px;
+  background: rgba(218, 55, 60, 0.18);
+  border: 1px solid rgba(218, 55, 60, 0.4);
+  z-index: 15;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
 .chat-shell header h1 {
   margin: 0;
 }
@@ -784,6 +806,62 @@ button:disabled {
   font-size: 0.75rem;
   color: var(--muted);
   font-family: "JetBrains Mono", monospace;
+}
+
+.message-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+
+.reaction-btn {
+  padding: 4px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-snappy);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.reaction-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.reaction-btn.reacted {
+  background: rgba(88, 101, 242, 0.3);
+  border-color: rgba(88, 101, 242, 0.6);
+}
+
+.reaction-btn.reacted:hover {
+  background: rgba(88, 101, 242, 0.4);
+  border-color: rgba(88, 101, 242, 0.75);
+}
+
+.reaction-btn.add-reaction {
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  opacity: 0.6;
+  transition: opacity 0.2s var(--ease-snappy), all 0.2s var(--ease-snappy);
+}
+
+.message:hover .reaction-btn.add-reaction {
+  opacity: 1;
+}
+
+.reaction-btn.add-reaction:hover {
+  opacity: 1;
+  background: rgba(88, 101, 242, 0.25);
+  border-color: rgba(88, 101, 242, 0.5);
 }
 
 .composer {
@@ -1102,6 +1180,10 @@ button:disabled {
 
   .messages {
     max-height: calc(100dvh - 238px);
+  }
+
+  .voice-note-status {
+    bottom: 222px;
   }
 
   .message {

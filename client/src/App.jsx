@@ -463,6 +463,16 @@ export default function App() {
       setOnlineUsers(Array.isArray(users) ? users : []);
     });
 
+    socket.on("message_reaction_update", (updated) => {
+      setMessages((current) =>
+        current.map((msg) =>
+          msg.id === updated.id
+            ? { ...msg, reactions: updated.reactions }
+            : msg
+        )
+      );
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -763,6 +773,21 @@ export default function App() {
     clearPendingAttachment();
   }
 
+  function reactToMessage(messageId, emoji) {
+    if (!socketRef.current) {
+      return;
+    }
+
+    socketRef.current.emit("react_to_message", {
+      messageId,
+      emoji
+    }, (response) => {
+      if (!response?.ok) {
+        setChatError(response?.message || "Failed to react to message");
+      }
+    });
+  }
+
   async function confirmKickTarget() {
     if (!kickTarget || !token) {
       return;
@@ -1040,6 +1065,7 @@ export default function App() {
             const mine = msg.sender?.id === user.id;
             const messageAttachment = msg.attachment || null;
             const isAudio = messageAttachment?.kind === "audio";
+            const reactions = msg.reactions || [];
             return (
               <article key={msg.id} className={mine ? "message mine" : "message"}>
                 <h4>{msg.sender?.username || "Unknown"}</h4>
@@ -1049,6 +1075,44 @@ export default function App() {
                   <span className="message-attachment-label">Voice note</span>
                 ) : null}
                 <time>{new Date(msg.createdAt).toLocaleTimeString()}</time>
+                {reactions.length > 0 ? (
+                  <div className="message-reactions">
+                    {reactions.map((reaction) => {
+                      const userCount = reaction.users?.length || 0;
+                      const userReacted = user?.id && reaction.users?.includes(user.id);
+                      return (
+                        <button
+                          key={reaction.emoji}
+                          type="button"
+                          className={`reaction-btn ${userReacted ? "reacted" : ""}`}
+                          onClick={() => reactToMessage(msg.id, reaction.emoji)}
+                          title={`${userCount} reaction${userCount !== 1 ? "s" : ""}`}
+                        >
+                          {reaction.emoji} {userCount > 1 ? userCount : ""}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      className="reaction-btn add-reaction"
+                      onClick={() => reactToMessage(msg.id, "👍")}
+                      title="Add reaction"
+                    >
+                      ➕
+                    </button>
+                  </div>
+                ) : (
+                  <div className="message-reactions">
+                    <button
+                      type="button"
+                      className="reaction-btn add-reaction"
+                      onClick={() => reactToMessage(msg.id, "👍")}
+                      title="Add reaction"
+                    >
+                      ➕
+                    </button>
+                  </div>
+                )}
               </article>
             );
           })}
@@ -1079,10 +1143,13 @@ export default function App() {
           </div>
           <div className="composer-actions">
             <button type="button" className="composer-action-btn" onClick={() => fileInputRef.current?.click()} disabled={!activeChatUser}>
-              Image / Video
+              🖼️ Image
+            </button>
+            <button type="button" className="composer-action-btn" onClick={() => fileInputRef.current?.click()} disabled={!activeChatUser}>
+              🎥 Video
             </button>
             <button type="button" className={isRecording ? "composer-action-btn recording" : "composer-action-btn"} onClick={toggleVoiceNote} disabled={!activeChatUser}>
-              {isRecording ? "Stop voice note" : "Voice note"}
+              {isRecording ? "⏹️ Stop" : "🎤 Voice"}
             </button>
             <input
               ref={fileInputRef}
