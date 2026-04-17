@@ -279,6 +279,7 @@ button:disabled {
   background: rgba(255, 107, 107, 0.2);
   color: #ffd9d9;
   border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 100px;
 }
 
 .chat-shell {
