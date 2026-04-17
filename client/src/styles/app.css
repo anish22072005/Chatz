@@ -721,26 +721,149 @@ button:disabled {
 }
 
 @media (max-width: 920px) {
+  .auth-page,
+  .chat-page {
+    padding: 14px;
+  }
+
+  .auth-card,
+  .sidebar,
+  .chat-shell {
+    border-radius: 16px;
+  }
+
   .chat-page {
     grid-template-columns: 1fr;
     align-items: start;
     justify-items: stretch;
   }
 
+  .sidebar {
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .avatar-options {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
   .user-status-row {
-    align-items: center;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .kick-btn {
+    flex: 0 0 88px;
   }
 
   .chat-shell {
+    padding: 66px 16px 16px;
     min-height: 80vh;
     grid-template-rows: auto minmax(52vh, 1fr) auto auto;
   }
 
+  .welcome-banner {
+    left: 16px;
+    right: 16px;
+    top: 12px;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+  }
+
   .messages {
     min-height: 52vh;
+    padding: 12px;
   }
 
   .message {
     max-width: 92%;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-card {
+    padding: 20px;
+  }
+
+  .auth-card h1 {
+    font-size: 1.65rem;
+  }
+
+  .current-user-row {
+    gap: 8px;
+  }
+
+  .avatar-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .user-status-row {
+    flex-direction: column;
+  }
+
+  .chat-user-btn,
+  .kick-btn {
+    width: 100%;
+  }
+
+  .kick-btn {
+    flex: 0 0 auto;
+    min-height: 34px;
+  }
+
+  .chat-user-btn {
+    padding: 10px;
+  }
+
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .status-dot {
+    width: 9px;
+    height: 9px;
+  }
+
+  .chat-shell {
+    padding: 62px 12px 12px;
+    min-height: 76vh;
+  }
+
+  .chat-header-user {
+    gap: 10px;
+  }
+
+  .chat-header-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .chat-shell header h1 {
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .composer {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .composer button {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .messages {
+    min-height: 44vh;
+  }
+
+  .message {
+    max-width: 100%;
+  }
+
+  .dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
