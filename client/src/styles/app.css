@@ -741,6 +741,7 @@ button:disabled {
   .sidebar {
     gap: 14px;
     padding: 16px;
+    grid-template-rows: auto auto auto;
   }
 
   .avatar-options {
@@ -748,17 +749,18 @@ button:disabled {
   }
 
   .user-status-row {
-    align-items: stretch;
+    align-items: center;
     gap: 8px;
   }
 
   .kick-btn {
     flex: 0 0 88px;
+    min-height: 40px;
   }
 
   .chat-shell {
     padding: 66px 16px 16px;
-    min-height: 80vh;
+    min-height: auto;
     grid-template-rows: auto minmax(52vh, 1fr) auto auto;
   }
 
@@ -771,6 +773,7 @@ button:disabled {
   }
 
   .messages {
+    height: 52vh;
     min-height: 52vh;
     padding: 12px;
   }
@@ -797,18 +800,10 @@ button:disabled {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .user-status-row {
-    flex-direction: column;
-  }
-
-  .chat-user-btn,
   .kick-btn {
-    width: 100%;
-  }
-
-  .kick-btn {
-    flex: 0 0 auto;
-    min-height: 34px;
+    flex: 0 0 92px;
+    min-height: 38px;
+    font-size: 0.92rem;
   }
 
   .chat-user-btn {
@@ -827,7 +822,7 @@ button:disabled {
 
   .chat-shell {
     padding: 62px 12px 12px;
-    min-height: 76vh;
+    min-height: auto;
   }
 
   .chat-header-user {
@@ -845,17 +840,17 @@ button:disabled {
   }
 
   .composer {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 96px;
     gap: 8px;
   }
 
   .composer button {
-    width: 100%;
     min-height: 42px;
   }
 
   .messages {
-    min-height: 44vh;
+    height: 46vh;
+    min-height: 46vh;
   }
 
   .message {
