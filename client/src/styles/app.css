@@ -14,7 +14,6 @@
   --ring: rgba(255, 183, 3, 0.4);
   --ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --hover-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -163,14 +162,6 @@ button:disabled {
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(16px);
-  transition: transform 0.25s var(--ease-out-smooth), border-color 0.25s var(--ease-out-smooth), box-shadow 0.25s var(--ease-out-smooth);
-}
-
-.sidebar:hover,
-.chat-shell:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow: var(--hover-shadow);
 }
 
 .sidebar {
@@ -233,7 +224,6 @@ button:disabled {
 .chat-user-btn.active {
   background: rgba(255, 183, 3, 0.22);
   border-color: rgba(255, 183, 3, 0.7);
-  box-shadow: 0 7px 16px rgba(255, 183, 3, 0.2);
 }
 
 .user-status-main {
