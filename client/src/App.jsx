@@ -696,7 +696,7 @@ export default function App() {
           </div>
           <p>
             {activeChatUser
-              ? `${messages.length} messages in this conversation`
+              ? (activeChatUser.isOnline ? "Online now" : formatLastSeen(activeChatUser.lastSeenAt))
               : "Choose one person from the left to start chatting"}
           </p>
         </header>
