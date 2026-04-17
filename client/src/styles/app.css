@@ -736,7 +736,6 @@ button:disabled {
 
 .messages {
   position: relative;
-  overflow: hidden;
   background: var(--surface-soft);
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -764,9 +763,10 @@ button:disabled {
 
 .message {
   position: relative;
-  overflow: hidden;
-  max-width: 78%;
+  max-width: 85%;
   width: fit-content;
+  word-wrap: break-word;
+  word-break: break-word;
   background: var(--surface-strong);
   border: 1px solid #464951;
   border-radius: 12px;
