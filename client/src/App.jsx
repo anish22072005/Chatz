@@ -750,7 +750,7 @@ export default function App() {
             <input
               value={friendSearch}
               onChange={(event) => setFriendSearch(event.target.value)}
-              placeholder="Search users to add friend"
+              placeholder="Search your friends to start a chat"
               maxLength={40}
             />
             {friendSearchLoading ? <p className="friend-search-note">Searching...</p> : null}

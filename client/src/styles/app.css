@@ -1005,4 +1005,11 @@ button:disabled {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .logout-btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    min-height: 42px;
+  }
 }
