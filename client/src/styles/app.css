@@ -218,7 +218,7 @@ button:disabled {
 .chat-user-btn:hover {
   transform: translateY(-1px);
   border-color: rgba(255, 183, 3, 0.55);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .chat-user-btn.active {
@@ -268,13 +268,10 @@ button:disabled {
 
 .status-dot.online {
   background: #32d583;
-  box-shadow: 0 0 0 3px rgba(50, 213, 131, 0.22);
-  animation: pulseOnline 1.9s ease-in-out infinite;
 }
 
 .status-dot.offline {
   background: #ff6b6b;
-  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
 }
 
 .kick-btn {
@@ -293,7 +290,6 @@ button:disabled {
   transform: none;
   background: rgba(255, 107, 107, 0.3);
   border-color: rgba(255, 107, 107, 0.6);
-  box-shadow: 0 6px 14px rgba(255, 107, 107, 0.28);
 }
 
 .logout-btn {
@@ -307,7 +303,6 @@ button:disabled {
 .logout-btn:hover {
   background: rgba(255, 107, 107, 0.3);
   border-color: rgba(255, 107, 107, 0.56);
-  box-shadow: 0 8px 18px rgba(255, 107, 107, 0.24);
 }
 
 .chat-shell {
@@ -463,16 +458,6 @@ button:disabled {
   to {
     transform: translateY(0);
     opacity: 1;
-  }
-}
-
-@keyframes pulseOnline {
-  0%,
-  100% {
-    box-shadow: 0 0 0 3px rgba(50, 213, 131, 0.18);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(50, 213, 131, 0.12);
   }
 }
 
