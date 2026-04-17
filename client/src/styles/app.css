@@ -12,6 +12,9 @@
   --accent-2: #fb8500;
   --danger: #ff6b6b;
   --ring: rgba(255, 183, 3, 0.4);
+  --ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --hover-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -27,6 +30,8 @@ body {
     radial-gradient(circle at 15% 15%, #4d6c93 0%, transparent 30%),
     radial-gradient(circle at 85% 5%, #8d99ae 0%, transparent 25%),
     linear-gradient(125deg, var(--bg-0), var(--bg-1) 45%, var(--bg-2));
+  background-size: 140% 140%, 130% 130%, 100% 100%;
+  animation: atmosphereShift 16s ease-in-out infinite alternate;
 }
 
 button,
@@ -50,7 +55,7 @@ input {
   background: linear-gradient(155deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.35);
-  animation: rise 0.5s ease;
+  animation: rise 0.55s var(--ease-out-smooth);
 }
 
 .auth-card h1 {
@@ -85,7 +90,11 @@ input {
   padding: 12px 14px;
   border-radius: 12px;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.22s var(--ease-snappy), box-shadow 0.22s var(--ease-snappy), background-color 0.22s var(--ease-snappy);
+}
+
+input:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 input:focus {
@@ -101,11 +110,18 @@ button {
   font-weight: 700;
   color: #101522;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  transition: transform 0.2s ease;
+  box-shadow: 0 6px 18px rgba(251, 133, 0, 0.18);
+  transition: transform 0.22s var(--ease-snappy), box-shadow 0.22s var(--ease-snappy), filter 0.22s var(--ease-snappy);
 }
 
 button:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(251, 133, 0, 0.3);
+  filter: saturate(1.05);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 button:disabled {
@@ -147,6 +163,14 @@ button:disabled {
   background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(16px);
+  transition: transform 0.25s var(--ease-out-smooth), border-color 0.25s var(--ease-out-smooth), box-shadow 0.25s var(--ease-out-smooth);
+}
+
+.sidebar:hover,
+.chat-shell:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: var(--hover-shadow);
 }
 
 .sidebar {
@@ -197,16 +221,19 @@ button:disabled {
   color: var(--text);
   text-align: left;
   font-weight: 600;
+  transition: border-color 0.18s var(--ease-snappy), background-color 0.18s var(--ease-snappy), transform 0.18s var(--ease-snappy), box-shadow 0.18s var(--ease-snappy);
 }
 
 .chat-user-btn:hover {
-  transform: none;
+  transform: translateY(-1px);
   border-color: rgba(255, 183, 3, 0.55);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 .chat-user-btn.active {
   background: rgba(255, 183, 3, 0.22);
   border-color: rgba(255, 183, 3, 0.7);
+  box-shadow: 0 7px 16px rgba(255, 183, 3, 0.2);
 }
 
 .user-status-main {
@@ -252,6 +279,7 @@ button:disabled {
 .status-dot.online {
   background: #32d583;
   box-shadow: 0 0 0 3px rgba(50, 213, 131, 0.22);
+  animation: pulseOnline 1.9s ease-in-out infinite;
 }
 
 .status-dot.offline {
@@ -268,11 +296,14 @@ button:disabled {
   border: 1px solid rgba(255, 107, 107, 0.45);
   border-radius: 8px;
   flex: 0 0 86px;
+  transition: background-color 0.18s var(--ease-snappy), border-color 0.18s var(--ease-snappy), box-shadow 0.18s var(--ease-snappy);
 }
 
 .kick-btn:hover {
   transform: none;
   background: rgba(255, 107, 107, 0.3);
+  border-color: rgba(255, 107, 107, 0.6);
+  box-shadow: 0 6px 14px rgba(255, 107, 107, 0.28);
 }
 
 .logout-btn {
@@ -280,6 +311,13 @@ button:disabled {
   color: #ffd9d9;
   border: 1px solid rgba(255, 107, 107, 0.4);
   border-radius: 100px;
+  transition: background-color 0.18s var(--ease-snappy), border-color 0.18s var(--ease-snappy), box-shadow 0.18s var(--ease-snappy), transform 0.18s var(--ease-snappy);
+}
+
+.logout-btn:hover {
+  background: rgba(255, 107, 107, 0.3);
+  border-color: rgba(255, 107, 107, 0.56);
+  box-shadow: 0 8px 18px rgba(255, 107, 107, 0.24);
 }
 
 .chat-shell {
@@ -309,6 +347,7 @@ button:disabled {
   overflow-y: auto;
   display: grid;
   gap: 10px;
+  scroll-behavior: smooth;
 }
 
 .message {
@@ -318,13 +357,24 @@ button:disabled {
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 10px 12px;
-  animation: rise 0.25s ease;
+  transition: transform 0.2s var(--ease-snappy), border-color 0.2s var(--ease-snappy), background-color 0.2s var(--ease-snappy);
+  animation: rise 0.28s var(--ease-out-smooth);
+}
+
+.message:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 .message.mine {
   margin-left: auto;
   background: rgba(255, 183, 3, 0.24);
   border-color: rgba(255, 183, 3, 0.5);
+}
+
+.message.mine:hover {
+  border-color: rgba(255, 183, 3, 0.72);
+  background: rgba(255, 183, 3, 0.28);
 }
 
 .message h4 {
@@ -371,6 +421,7 @@ button:disabled {
   background: linear-gradient(155deg, rgba(34, 49, 74, 0.96), rgba(20, 32, 52, 0.96));
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 18px 55px rgba(0, 0, 0, 0.38);
+  animation: rise 0.24s var(--ease-out-smooth);
 }
 
 .confirm-dialog h3 {
@@ -405,6 +456,15 @@ button:disabled {
   background: linear-gradient(90deg, #ff7b7b, #ff5757);
 }
 
+@keyframes atmosphereShift {
+  0% {
+    background-position: 0% 20%, 100% 0%, 50% 50%;
+  }
+  100% {
+    background-position: 14% 32%, 86% 16%, 50% 50%;
+  }
+}
+
 @keyframes rise {
   from {
     transform: translateY(7px);
@@ -413,6 +473,26 @@ button:disabled {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes pulseOnline {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(50, 213, 131, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(50, 213, 131, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
 
