@@ -1007,9 +1007,9 @@ button:disabled {
   }
 
   .logout-btn {
-    width: 100%;
+    width: 50%;
     padding: 10px 12px;
     font-size: 0.92rem;
-    min-height: 42px;
+    min-height: 22px;
   }
 }
