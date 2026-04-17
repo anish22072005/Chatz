@@ -184,7 +184,7 @@ button:disabled {
   align-items: stretch;
   justify-content: space-between;
   gap: 10px;
-  border-radius: 20px;
+  border-radius: 60px;
 }
 
 .chat-user-btn {
