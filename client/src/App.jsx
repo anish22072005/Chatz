@@ -667,9 +667,6 @@ export default function App() {
                       <span className="chat-user-name">{u.username}</span>
                       <span className="chat-user-preview">
                         {u.isOnline ? "Online now" : formatLastSeen(u.lastSeenAt)}
-                        {messagePreviews[u.id]
-                          ? ` • ${messagePreviews[u.id].isMine ? "You: " : ""}${messagePreviews[u.id].content}`
-                          : ""}
                       </span>
                     </div>
                   </div>
