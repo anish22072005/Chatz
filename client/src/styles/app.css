@@ -46,6 +46,54 @@
   max-width: 100%;
 }
 
+.voice-note-card {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(88, 101, 242, 0.38);
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.2), rgba(49, 51, 56, 0.95));
+}
+
+.voice-note-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.voice-note-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #9ca8ff;
+  box-shadow: 0 0 0 4px rgba(156, 168, 255, 0.18);
+}
+
+.voice-note-title {
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #e4e8ff;
+}
+
+.message-audio {
+  width: 100%;
+  margin-top: 0;
+  border: 0;
+  background: transparent;
+}
+
+.message-audio::-webkit-media-controls-panel {
+  background: rgba(19, 21, 25, 0.78);
+  border-radius: 999px;
+}
+
+.message-audio::-webkit-media-controls-play-button,
+.message-audio::-webkit-media-controls-mute-button {
+  filter: brightness(1.12);
+}
+
 .message-attachment-label {
   display: inline-block;
   margin-top: 8px;

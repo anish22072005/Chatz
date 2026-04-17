@@ -97,7 +97,15 @@ function renderAttachment(attachment) {
   }
 
   if (attachment.kind === "audio") {
-    return <audio className="message-attachment message-audio" controls src={attachment.dataUrl} />;
+    return (
+      <div className="voice-note-card">
+        <div className="voice-note-header">
+          <span className="voice-note-dot" aria-hidden="true" />
+          <span className="voice-note-title">Voice note</span>
+        </div>
+        <audio className="message-attachment message-audio" controls preload="metadata" src={attachment.dataUrl} />
+      </div>
+    );
   }
 
   return null;
@@ -1039,15 +1047,11 @@ export default function App() {
           {messages.map((msg) => {
             const mine = msg.sender?.id === user.id;
             const messageAttachment = msg.attachment || null;
-            const isAudio = messageAttachment?.kind === "audio";
             return (
               <article key={msg.id} className={mine ? "message mine" : "message"}>
                 <h4>{msg.sender?.username || "Unknown"}</h4>
                 <p>{msg.content}</p>
                 {renderAttachment(messageAttachment)}
-                {!msg.content && messageAttachment && isAudio ? (
-                  <span className="message-attachment-label">Voice note</span>
-                ) : null}
                 <time>{new Date(msg.createdAt).toLocaleTimeString()}</time>
               </article>
             );
