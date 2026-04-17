@@ -94,6 +94,7 @@ export default function App() {
   const [avatarStyle, setAvatarStyle] = useState("micah");
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [messages, setMessages] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -122,6 +123,12 @@ export default function App() {
 
     return () => window.clearTimeout(timer);
   }, [welcomeMessage]);
+
+  useEffect(() => {
+    if (!isAuthed) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isAuthed]);
 
   const usersWithStatus = useMemo(() => {
     const safeOnlineUsers = Array.isArray(onlineUsers) ? onlineUsers : [];
@@ -609,7 +616,7 @@ export default function App() {
 
   return (
     <main className="chat-page">
-      <aside className="sidebar">
+      <aside className={mobileSidebarOpen ? "sidebar open" : "sidebar"}>
         <div className="current-user-card">
           <h2>Logged in as</h2>
           <div className="current-user-row">
@@ -654,7 +661,10 @@ export default function App() {
                 <button
                   type="button"
                   className={String(activeChatUserId) === String(u.id) ? "chat-user-btn active" : "chat-user-btn"}
-                  onClick={() => setActiveChatUserId(String(u.id))}
+                  onClick={() => {
+                    setActiveChatUserId(String(u.id));
+                    setMobileSidebarOpen(false);
+                  }}
                 >
                   <div className="user-status-main">
                     <img className="user-avatar" src={u.avatarUrl || buildAvatarUrl(u.id || u.username, u.avatarStyle || "micah")} alt="" />
@@ -685,10 +695,27 @@ export default function App() {
         <button onClick={logout} className="logout-btn">Sign out</button>
       </aside>
 
+      {mobileSidebarOpen ? (
+        <button
+          type="button"
+          className="mobile-sidebar-backdrop"
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-label="Close chats menu"
+        />
+      ) : null}
+
       <section className="chat-shell">
         {welcomeMessage ? <p className="welcome-banner">{welcomeMessage}</p> : null}
         <header>
           <div className="chat-header-user">
+            <button
+              type="button"
+              className="mobile-sidebar-toggle"
+              onClick={() => setMobileSidebarOpen((prev) => !prev)}
+              aria-label="Open chats menu"
+            >
+              Chats
+            </button>
             {activeChatUser ? (
               <img className="chat-header-avatar user-avatar" src={activeChatUser.avatarUrl || buildAvatarUrl(activeChatUser.id || activeChatUser.username, activeChatUser.avatarStyle || "micah")} alt="" />
             ) : null}

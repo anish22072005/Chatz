@@ -420,6 +420,11 @@ button:disabled {
   height: 42px;
 }
 
+.mobile-sidebar-toggle,
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
 .chat-user-meta {
   min-width: 0;
   display: grid;
@@ -725,28 +730,74 @@ button:disabled {
   .chat-page {
     width: 100vw;
     min-height: 100dvh;
-    padding: 0;
+    padding: 8px;
   }
 
   .auth-card,
   .sidebar,
   .chat-shell {
-    border-radius: 0;
+    border-radius: 18px;
   }
 
   .chat-page {
     grid-template-columns: 1fr;
     align-items: start;
     justify-items: stretch;
-    gap: 0;
+    gap: 10px;
+    position: relative;
   }
 
   .sidebar {
-    gap: 12px;
-    padding: 16px;
+    gap: 14px;
+    padding: 18px;
     grid-template-rows: auto auto auto;
-    max-height: 38dvh;
+    max-height: none;
     overflow-y: auto;
+    position: fixed;
+    left: 8px;
+    top: 8px;
+    bottom: 8px;
+    width: min(86vw, 360px);
+    z-index: 50;
+    transform: translateX(-110%);
+    transition: transform 0.24s var(--ease-snappy);
+    box-shadow: 0 24px 56px rgba(0, 0, 0, 0.35);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mobile-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.44);
+    z-index: 45;
+    cursor: pointer;
+    box-shadow: none;
+  }
+
+  .mobile-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #dfe4ff;
+    background: rgba(88, 101, 242, 0.24);
+    border: 1px solid rgba(88, 101, 242, 0.55);
+    box-shadow: none;
+  }
+
+  .mobile-sidebar-toggle:hover {
+    transform: none;
+    background: rgba(88, 101, 242, 0.34);
+    box-shadow: none;
   }
 
   .avatar-options {
@@ -765,7 +816,7 @@ button:disabled {
 
   .chat-shell {
     padding: 58px 14px 14px;
-    min-height: 62dvh;
+    min-height: calc(100dvh - 16px);
     grid-template-rows: auto minmax(0, 1fr) auto auto;
     overflow: hidden;
   }
@@ -781,7 +832,7 @@ button:disabled {
   .messages {
     height: auto;
     min-height: 0;
-    max-height: calc(62dvh - 150px);
+    max-height: calc(100dvh - 250px);
     padding: 12px;
   }
 
@@ -794,10 +845,26 @@ button:disabled {
   .auth-card {
     width: 100vw;
     min-height: 100dvh;
-    padding: 18px 16px 20px;
-    border-radius: 0;
+    padding: 20px 16px 22px;
+    border-radius: 16px;
     border-left: 0;
     border-right: 0;
+  }
+
+  .chat-page {
+    gap: 12px;
+  }
+
+  .sidebar {
+    padding: 14px;
+    width: min(90vw, 360px);
+    left: 5px;
+    top: 5px;
+    bottom: 5px;
+  }
+
+  .sidebar ul {
+    gap: 12px;
   }
 
   .auth-card h1 {
@@ -813,9 +880,9 @@ button:disabled {
   }
 
   .kick-btn {
-    flex: 0 0 92px;
+    flex: 0 0 102px;
     min-height: 38px;
-    font-size: 0.92rem;
+    font-size: 0.88rem;
   }
 
   .chat-user-btn {
@@ -833,8 +900,8 @@ button:disabled {
   }
 
   .chat-shell {
-    padding: 56px 12px 12px;
-    min-height: 64dvh;
+    padding: 56px 12px 14px;
+    min-height: calc(100dvh - 10px);
   }
 
   .chat-header-user {
@@ -861,7 +928,7 @@ button:disabled {
   }
 
   .messages {
-    max-height: calc(64dvh - 148px);
+    max-height: calc(100dvh - 238px);
   }
 
   .message {
