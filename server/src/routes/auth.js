@@ -6,9 +6,24 @@ const authMiddleware = require("../middleware/auth");
 
 const router = express.Router();
 
+const ALLOWED_AVATAR_STYLES = [
+  "micah",
+  "adventurer-neutral",
+  "bottts-neutral",
+  "fun-emoji",
+  "icons",
+  "pixel-art-neutral"
+];
+
+function normalizeAvatarStyle(style) {
+  const safe = String(style || "").trim();
+  return ALLOWED_AVATAR_STYLES.includes(safe) ? safe : "micah";
+}
+
 function buildAvatarUrl(user) {
+  const style = normalizeAvatarStyle(user?.avatarStyle);
   const seed = encodeURIComponent(String(user?._id || user?.username || "user").trim());
-  return `https://api.dicebear.com/7.x/micah/svg?seed=${seed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
 }
 
 function signToken(user) {
@@ -21,7 +36,7 @@ function signToken(user) {
 
 router.post("/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, avatarStyle } = req.body;
 
     if (!username || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
@@ -43,7 +58,8 @@ router.post("/register", async (req, res) => {
     const user = await User.create({
       username: username.trim(),
       email: email.trim().toLowerCase(),
-      passwordHash
+      passwordHash,
+      avatarStyle: normalizeAvatarStyle(avatarStyle)
     });
 
     const token = signToken(user);
@@ -55,6 +71,7 @@ router.post("/register", async (req, res) => {
         username: user.username,
         email: user.email,
         lastSeenAt: user.lastSeenAt,
+        avatarStyle: user.avatarStyle,
         avatarUrl: buildAvatarUrl(user)
       }
     });
@@ -96,6 +113,7 @@ router.post("/login", async (req, res) => {
         username: user.username,
         email: user.email,
         lastSeenAt: user.lastSeenAt,
+        avatarStyle: user.avatarStyle,
         avatarUrl: buildAvatarUrl(user)
       }
     });
@@ -106,7 +124,7 @@ router.post("/login", async (req, res) => {
 
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("_id username email lastSeenAt");
+    const user = await User.findById(req.user.userId).select("_id username email lastSeenAt avatarStyle");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -118,6 +136,35 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
+router.patch("/me/avatar", authMiddleware, async (req, res) => {
+  try {
+    const avatarStyle = normalizeAvatarStyle(req.body?.avatarStyle);
+
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { $set: { avatarStyle } },
+      { new: true }
+    ).select("_id username email lastSeenAt avatarStyle");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        lastSeenAt: user.lastSeenAt,
+        avatarStyle: user.avatarStyle,
+        avatarUrl: buildAvatarUrl(user)
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Unable to update avatar" });
+  }
+});
+
 router.get("/users", authMiddleware, async (_req, res) => {
   try {
     const currentUser = await User.findById(_req.user.userId).select("blockedUsers").lean();
@@ -126,13 +173,14 @@ router.get("/users", authMiddleware, async (_req, res) => {
     }
 
     const blockedSet = new Set((currentUser.blockedUsers || []).map((id) => id.toString()));
-    const users = await User.find().sort({ username: 1 }).select("_id username lastSeenAt").lean();
+    const users = await User.find().sort({ username: 1 }).select("_id username lastSeenAt avatarStyle").lean();
 
     return res.json({
       users: users.map((item) => ({
         id: item._id.toString(),
         username: item.username,
         lastSeenAt: item.lastSeenAt,
+        avatarStyle: item.avatarStyle,
         avatarUrl: buildAvatarUrl(item),
         isBlocked: blockedSet.has(item._id.toString())
       }))

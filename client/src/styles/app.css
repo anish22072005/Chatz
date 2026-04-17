@@ -116,6 +116,55 @@ input {
   font-weight: 600;
 }
 
+.avatar-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.avatar-picker > span {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.avatar-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.avatar-option {
+  padding: 4px;
+  border-radius: 10px;
+  background: #2f3238;
+  border: 1px solid #444851;
+  box-shadow: none;
+  transition: border-color 0.18s var(--ease-snappy), transform 0.18s var(--ease-snappy), background-color 0.18s var(--ease-snappy);
+}
+
+.avatar-option img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  display: block;
+}
+
+.avatar-option:hover {
+  transform: translateY(-1px);
+  border-color: rgba(88, 101, 242, 0.7);
+  background: #373a43;
+  box-shadow: none;
+}
+
+.avatar-option.active {
+  border-color: rgba(88, 101, 242, 0.85);
+  background: rgba(88, 101, 242, 0.16);
+}
+
+.auth-avatar-picker {
+  margin-top: 2px;
+}
+
 input {
   width: 100%;
   border: 1px solid var(--line);
@@ -272,6 +321,23 @@ button:disabled {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.avatar-change-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: rgba(88, 101, 242, 0.2);
+  color: #dfe4ff;
+  border: 1px solid rgba(88, 101, 242, 0.5);
+  box-shadow: none;
+}
+
+.avatar-change-btn:hover {
+  background: rgba(88, 101, 242, 0.3);
+  border-color: rgba(88, 101, 242, 0.65);
+  box-shadow: none;
 }
 
 .pill {

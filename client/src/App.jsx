@@ -9,6 +9,15 @@ const SOCKET_URL =
   import.meta.env.VITE_SOCKET_URL ||
   (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000");
 
+const AVAILABLE_AVATAR_STYLES = [
+  "micah",
+  "adventurer-neutral",
+  "bottts-neutral",
+  "fun-emoji",
+  "icons",
+  "pixel-art-neutral"
+];
+
 function toFriendlyNetworkError(error, fallbackMessage) {
   if (error?.name === "TypeError" && /fetch/i.test(error?.message || "")) {
     return "Cannot reach backend API. Check deployment URL and CORS settings.";
@@ -31,9 +40,10 @@ function FormField({ label, type = "text", value, onChange, placeholder }) {
   );
 }
 
-function buildAvatarUrl(seed) {
+function buildAvatarUrl(seed, style = "micah") {
   const safeSeed = encodeURIComponent(String(seed || "user").trim() || "user");
-  return `https://api.dicebear.com/7.x/micah/svg?seed=${safeSeed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
+  const safeStyle = AVAILABLE_AVATAR_STYLES.includes(style) ? style : "micah";
+  return `https://api.dicebear.com/7.x/${safeStyle}/svg?seed=${safeSeed}&backgroundColor=5865f2,4752c4,2b2d31,232428&radius=50`;
 }
 
 function formatLastSeen(value) {
@@ -81,6 +91,9 @@ export default function App() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [avatarStyle, setAvatarStyle] = useState("micah");
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
 
   const [messages, setMessages] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -123,8 +136,9 @@ export default function App() {
           username: name || "Unknown user",
           isOnline: onlineIds.has(String(u?.id || "")),
           isBlocked: Boolean(u?.isBlocked),
-            lastSeenAt: u?.lastSeenAt || null,
-            avatarUrl: u?.avatarUrl || buildAvatarUrl(u?.id || name)
+          lastSeenAt: u?.lastSeenAt || null,
+          avatarStyle: u?.avatarStyle || "micah",
+          avatarUrl: u?.avatarUrl || buildAvatarUrl(u?.id || name, u?.avatarStyle || "micah")
         };
       })
       .sort((a, b) => a.username.localeCompare(b.username));
@@ -241,7 +255,8 @@ export default function App() {
               id: String(item?.id || ""),
               username: typeof item?.username === "string" ? item.username : "",
               lastSeenAt: item?.lastSeenAt || null,
-              avatarUrl: item?.avatarUrl || buildAvatarUrl(item?.id || item?.username),
+              avatarStyle: item?.avatarStyle || "micah",
+              avatarUrl: item?.avatarUrl || buildAvatarUrl(item?.id || item?.username, item?.avatarStyle || "micah"),
               isBlocked: Boolean(item?.isBlocked)
             }))
           : [];
@@ -346,7 +361,7 @@ export default function App() {
 
     const payload =
       mode === "register"
-        ? { username, email, password }
+        ? { username, email, password, avatarStyle }
         : { identifier, password };
 
     const endpoint = mode === "register" ? "register" : "login";
@@ -365,17 +380,68 @@ export default function App() {
       }
 
       setToken(data.token);
-      setUser({ ...data.user, avatarUrl: data.user?.avatarUrl || buildAvatarUrl(data.user?.id || data.user?.username) });
+      setUser({
+        ...data.user,
+        avatarStyle: data.user?.avatarStyle || "micah",
+        avatarUrl: data.user?.avatarUrl || buildAvatarUrl(data.user?.id || data.user?.username, data.user?.avatarStyle || "micah")
+      });
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify({ ...data.user, avatarUrl: data.user?.avatarUrl || buildAvatarUrl(data.user?.id || data.user?.username) }));
+      localStorage.setItem("user", JSON.stringify({
+        ...data.user,
+        avatarStyle: data.user?.avatarStyle || "micah",
+        avatarUrl: data.user?.avatarUrl || buildAvatarUrl(data.user?.id || data.user?.username, data.user?.avatarStyle || "micah")
+      }));
       setWelcomeMessage(mode === "register" ? `Welcome, ${data.user.username}!` : `Welcome back, ${data.user.username}!`);
 
       setPassword("");
       setEmail("");
       setUsername("");
       setIdentifier("");
+      setAvatarStyle("micah");
     } catch (error) {
       setAuthError(toFriendlyNetworkError(error, "Authentication failed"));
+    }
+  }
+
+  async function saveAvatarStyle(nextStyle) {
+    if (!token || !user || !AVAILABLE_AVATAR_STYLES.includes(nextStyle)) {
+      return;
+    }
+
+    setAvatarSaving(true);
+    setChatError("");
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me/avatar`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ avatarStyle: nextStyle })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update avatar");
+      }
+
+      const updatedUser = {
+        ...user,
+        ...data.user,
+        avatarStyle: data.user?.avatarStyle || nextStyle,
+        avatarUrl: data.user?.avatarUrl || buildAvatarUrl(user.id || user.username, nextStyle)
+      };
+
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setAvatarStyle(updatedUser.avatarStyle || "micah");
+      setAvatarPickerOpen(false);
+      setWelcomeMessage("Avatar updated");
+    } catch (error) {
+      setChatError(toFriendlyNetworkError(error, "Failed to update avatar"));
+    } finally {
+      setAvatarSaving(false);
     }
   }
 
@@ -481,6 +547,26 @@ export default function App() {
                   onChange={setEmail}
                   placeholder="you@example.com"
                 />
+
+                <div className="avatar-picker auth-avatar-picker">
+                  <span>Choose avatar</span>
+                  <div className="avatar-options">
+                    {AVAILABLE_AVATAR_STYLES.map((style) => {
+                      const selected = avatarStyle === style;
+                      return (
+                        <button
+                          key={style}
+                          type="button"
+                          className={selected ? "avatar-option active" : "avatar-option"}
+                          onClick={() => setAvatarStyle(style)}
+                          aria-label={`Use ${style} avatar style`}
+                        >
+                          <img src={buildAvatarUrl(username || email || "new-user", style)} alt="" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </>
             ) : (
               <FormField
@@ -527,9 +613,38 @@ export default function App() {
         <div className="current-user-card">
           <h2>Logged in as</h2>
           <div className="current-user-row">
-            <img className="user-avatar" src={user.avatarUrl || buildAvatarUrl(user.id || user.username)} alt="" />
+            <img className="user-avatar" src={user.avatarUrl || buildAvatarUrl(user.id || user.username, user.avatarStyle || "micah")} alt="" />
             <p className="pill">{user.username}</p>
+            <button
+              type="button"
+              className="avatar-change-btn"
+              onClick={() => setAvatarPickerOpen((prev) => !prev)}
+            >
+              {avatarPickerOpen ? "Close" : "Change avatar"}
+            </button>
           </div>
+
+          {avatarPickerOpen ? (
+            <div className="avatar-picker">
+              <div className="avatar-options">
+                {AVAILABLE_AVATAR_STYLES.map((style) => {
+                  const active = (user.avatarStyle || "micah") === style;
+                  return (
+                    <button
+                      key={style}
+                      type="button"
+                      className={active ? "avatar-option active" : "avatar-option"}
+                      onClick={() => saveAvatarStyle(style)}
+                      disabled={avatarSaving}
+                      aria-label={`Switch avatar to ${style}`}
+                    >
+                      <img src={buildAvatarUrl(user.id || user.username, style)} alt="" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
         <div>
           <h3>Chats</h3>
@@ -542,7 +657,7 @@ export default function App() {
                   onClick={() => setActiveChatUserId(String(u.id))}
                 >
                   <div className="user-status-main">
-                    <img className="user-avatar" src={u.avatarUrl || buildAvatarUrl(u.id || u.username)} alt="" />
+                    <img className="user-avatar" src={u.avatarUrl || buildAvatarUrl(u.id || u.username, u.avatarStyle || "micah")} alt="" />
                     <span
                       className={u.isOnline ? "status-dot online" : "status-dot offline"}
                       aria-label={u.isOnline ? "online" : "offline"}
@@ -578,7 +693,7 @@ export default function App() {
         <header>
           <div className="chat-header-user">
             {activeChatUser ? (
-              <img className="chat-header-avatar user-avatar" src={activeChatUser.avatarUrl || buildAvatarUrl(activeChatUser.id || activeChatUser.username)} alt="" />
+              <img className="chat-header-avatar user-avatar" src={activeChatUser.avatarUrl || buildAvatarUrl(activeChatUser.id || activeChatUser.username, activeChatUser.avatarStyle || "micah")} alt="" />
             ) : null}
             <h1>{activeChatUser ? `Chat with ${activeChatUser.username}` : "Select someone to chat"}</h1>
           </div>
