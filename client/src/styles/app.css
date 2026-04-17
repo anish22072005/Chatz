@@ -16,6 +16,8 @@
   --danger: #da373c;
   --ring: rgba(88, 101, 242, 0.38);
   --line: #3f4147;
+  --box-pattern-soft: rgba(132, 142, 255, 0.07);
+  --box-pattern-line: rgba(255, 255, 255, 0.04);
   --ease-out-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -199,10 +201,23 @@ button:disabled {
 
 .sidebar,
 .chat-shell {
+  position: relative;
+  overflow: hidden;
   border-radius: 20px;
   background: var(--surface);
   border: 1px solid var(--line);
   backdrop-filter: blur(6px);
+}
+
+.sidebar::before,
+.chat-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 14% 16%, var(--box-pattern-soft) 0, transparent 34%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.03), transparent 45%);
 }
 
 .sidebar {
@@ -245,6 +260,8 @@ button:disabled {
 }
 
 .chat-user-btn {
+  position: relative;
+  overflow: hidden;
   flex: 1;
   min-width: 0;
   padding: 9px 10px;
@@ -255,6 +272,19 @@ button:disabled {
   text-align: left;
   font-weight: 600;
   transition: border-color 0.18s var(--ease-snappy), background-color 0.18s var(--ease-snappy), transform 0.18s var(--ease-snappy), box-shadow 0.18s var(--ease-snappy);
+}
+
+.chat-user-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 11px,
+    var(--box-pattern-line) 11px 12px
+  );
+  opacity: 0.6;
 }
 
 .chat-user-btn:hover {
@@ -368,6 +398,8 @@ button:disabled {
 }
 
 .messages {
+  position: relative;
+  overflow: hidden;
   background: var(--surface-soft);
   border-radius: 14px;
   border: 1px solid var(--line);
@@ -379,7 +411,23 @@ button:disabled {
   scroll-behavior: smooth;
 }
 
+.messages::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 85% 12%, rgba(120, 132, 255, 0.08) 0, transparent 38%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 25px,
+      rgba(255, 255, 255, 0.03) 25px 26px
+    );
+}
+
 .message {
+  position: relative;
+  overflow: hidden;
   max-width: 78%;
   width: fit-content;
   background: var(--surface-strong);
@@ -388,6 +436,14 @@ button:disabled {
   padding: 10px 12px;
   transition: transform 0.2s var(--ease-snappy), border-color 0.2s var(--ease-snappy), background-color 0.2s var(--ease-snappy);
   animation: rise 0.28s var(--ease-out-smooth);
+}
+
+.message::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent 44%);
 }
 
 .message:hover {
