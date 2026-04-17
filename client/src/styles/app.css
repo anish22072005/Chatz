@@ -394,8 +394,9 @@ button:disabled {
 }
 
 .chat-shell {
+  position: relative;
   width: 100%;
-  padding: 24px;
+  padding: 72px 24px 24px;
   display: grid;
   grid-template-rows: auto minmax(62vh, 1fr) auto auto;
   gap: 14px;
@@ -410,6 +411,12 @@ button:disabled {
   border: 1px solid rgba(88, 101, 242, 0.34);
   color: #e3e7ff;
   font-weight: 700;
+  position: absolute;
+  top: 16px;
+  left: 24px;
+  right: 24px;
+  z-index: 20;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
 
 .chat-shell header h1 {

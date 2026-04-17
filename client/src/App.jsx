@@ -32,37 +32,25 @@ function FormField({ label, type = "text", value, onChange, placeholder }) {
 }
 
 function formatLastSeen(value) {
-  if (!value) {
-    return "Last seen: unavailable";
+  const date = value ? new Date(value) : null;
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return "Last seen 1 mins ago";
   }
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Last seen: unavailable";
+  const diffMinutes = Math.max(1, Math.floor((Date.now() - date.getTime()) / 60000));
+
+  if (diffMinutes < 60) {
+    return `Last seen ${diffMinutes} mins ago`;
   }
 
-  const now = new Date();
-  const isSameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate();
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const isYesterday =
-    date.getFullYear() === yesterday.getFullYear() &&
-    date.getMonth() === yesterday.getMonth() &&
-    date.getDate() === yesterday.getDate();
-  const time = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-
-  if (isSameDay) {
-    return `Last seen today at ${time}`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `Last seen ${diffHours} hrs ago`;
   }
 
-  if (isYesterday) {
-    return `Last seen yesterday at ${time}`;
-  }
-
-  return `Last seen ${date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} at ${time}`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `Last seen ${diffDays} days ago`;
 }
 
 export default function App() {
@@ -571,7 +559,7 @@ export default function App() {
       </aside>
 
       <section className="chat-shell">
-          {welcomeMessage ? <p className="welcome-banner">{welcomeMessage}</p> : null}
+        {welcomeMessage ? <p className="welcome-banner">{welcomeMessage}</p> : null}
         <header>
           <h1>{activeChatUser ? `Chat with ${activeChatUser.username}` : "Select someone to chat"}</h1>
           <p>
