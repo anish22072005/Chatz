@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
 const PROD_BACKEND_URL = "https://chatz-k70j.onrender.com";
-const API_URL =
+const API_URL = String(
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000");
-const SOCKET_URL =
+  (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000")
+).replace(/\/$/, "");
+const SOCKET_URL = String(
   import.meta.env.VITE_SOCKET_URL ||
-  (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000");
+  (import.meta.env.PROD ? PROD_BACKEND_URL : "http://localhost:5000")
+).replace(/\/$/, "");
 
 const AVAILABLE_AVATAR_STYLES = [
   "micah",
@@ -500,12 +502,15 @@ export default function App() {
         : { identifier, password };
 
     const endpoint = mode === "register" ? "register" : "login";
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 45000);
 
     try {
       const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        signal: controller.signal
       });
 
       const data = await response.json();
@@ -534,7 +539,13 @@ export default function App() {
       setIdentifier("");
       setAvatarStyle("micah");
     } catch (error) {
-      setAuthError(toFriendlyNetworkError(error, "Authentication failed"));
+      if (error?.name === "AbortError") {
+        setAuthError("The server took too long to respond. Please try again.");
+      } else {
+        setAuthError(toFriendlyNetworkError(error, "Authentication failed"));
+      }
+    } finally {
+      window.clearTimeout(timeout);
     }
   }
 
