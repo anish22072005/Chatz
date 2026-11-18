@@ -516,19 +516,165 @@ button:disabled {
 
 .friend-search {
   display: grid;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 9px;
+  margin-bottom: 12px;
 }
 
-.friend-search input {
-  padding: 10px 12px;
-  border-radius: 10px;
+.friend-search-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+}
+
+.friend-search-heading > div {
+  display: grid;
+  gap: 1px;
+}
+
+.friend-search-heading strong {
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.friend-search-eyebrow {
+  color: #9aa9ff;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.friend-search-clear {
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #aab4ff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+.friend-search-clear:hover,
+.friend-search-clear:active {
+  background: rgba(88, 101, 242, 0.16);
+  box-shadow: none;
+}
+
+.friend-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.friend-search-field svg {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: #929ba8;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.friend-search-field input {
+  width: 100%;
+  padding: 11px 38px 11px 38px;
+  border-radius: 12px;
+  background: rgba(12, 14, 22, 0.48);
+  border: 1px solid rgba(170, 180, 255, 0.14);
+  font-size: 0.86rem;
+  box-sizing: border-box;
+}
+
+.friend-search-field input:focus {
+  border-color: rgba(88, 101, 242, 0.68);
+  background: rgba(12, 14, 22, 0.62);
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.12);
+}
+
+.friend-search-spinner {
+  position: absolute;
+  right: 12px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(170, 180, 255, 0.22);
+  border-top-color: #9aa9ff;
+  border-radius: 50%;
+  animation: friendSearchSpin 0.7s linear infinite;
+}
+
+@keyframes friendSearchSpin {
+  to { transform: rotate(360deg); }
 }
 
 .friend-search-note {
   margin: 0;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.friend-search-error {
+  color: #ff9da9;
+}
+
+.friend-search-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 9px 10px;
+  border: 1px dashed rgba(170, 180, 255, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.friend-search-empty-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(88, 101, 242, 0.24), rgba(112, 200, 255, 0.12));
+  color: #cbd2ff;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.friend-search-empty strong {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.friend-search-empty p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.friend-search-no-results {
+  border-style: solid;
+}
+
+.friend-search-loading {
+  display: grid;
+  gap: 6px;
+}
+
+.friend-search-loading span {
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(170, 180, 255, 0.08), rgba(255, 255, 255, 0.03));
+  background-size: 220% 100%;
+  animation: friendSearchShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes friendSearchShimmer {
+  to { background-position: -220% 0; }
 }
 
 .friend-search-results {
@@ -543,11 +689,18 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.friend-search-row:hover {
+  border-color: rgba(170, 180, 255, 0.22);
+  background: rgba(255, 255, 255, 0.065);
+  transform: translateY(-1px);
 }
 
 .friend-search-user {
@@ -557,10 +710,45 @@ button:disabled {
   min-width: 0;
 }
 
-.friend-search-user span {
+.friend-search-user-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.friend-search-user-copy strong {
+  max-width: 145px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 0.82rem;
+}
+
+.friend-search-user-copy span {
+  margin-top: 1px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.add-friend-btn {
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #5865f2, #6f7bf7);
+  border: 1px solid rgba(170, 180, 255, 0.34);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 800;
+  box-shadow: 0 7px 18px rgba(88, 101, 242, 0.16);
+}
+
+.add-friend-btn:hover {
+  background: linear-gradient(135deg, #6672f6, #7c87ff);
+  box-shadow: 0 8px 20px rgba(88, 101, 242, 0.24);
+}
+
+.add-friend-btn:disabled {
+  box-shadow: none;
 }
 
 .add-friend-btn {

@@ -206,9 +206,6 @@ router.get("/users", authMiddleware, async (_req, res) => {
 router.get("/users/search", authMiddleware, async (req, res) => {
   try {
     const query = String(req.query.query || "").trim();
-    if (query.length < 1) {
-      return res.json({ users: [] });
-    }
 
     const currentUser = await User.findById(req.user.userId).select("friends").lean();
     if (!currentUser) {
@@ -216,6 +213,17 @@ router.get("/users/search", authMiddleware, async (req, res) => {
     }
 
     const excludedIds = new Set([String(req.user.userId), ...(currentUser.friends || []).map((id) => String(id))]);
+    if (!query) {
+      const suggestions = await User.find({
+        _id: { $nin: [req.user.userId, ...(currentUser.friends || [])] }
+      })
+        .select("_id username lastSeenAt avatarStyle")
+        .limit(100)
+        .lean();
+      suggestions.sort(() => Math.random() - 0.5);
+      return res.json({ users: suggestions.slice(0, 12).map((item) => toPublicUser(item)) });
+    }
+
     const regex = new RegExp(escapeRegex(query), "i");
 
     const users = await User.find({ username: regex })

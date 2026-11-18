@@ -165,6 +165,7 @@ export default function App() {
   const [friendSearch, setFriendSearch] = useState("");
   const [friendSearchResults, setFriendSearchResults] = useState([]);
   const [friendSearchLoading, setFriendSearchLoading] = useState(false);
+  const [friendSearchError, setFriendSearchError] = useState("");
   const [addingFriendId, setAddingFriendId] = useState("");
 
   const socketRef = useRef(null);
@@ -197,23 +198,27 @@ export default function App() {
   useEffect(() => {
     if (!isAuthed) {
       setFriendSearchResults([]);
+      setFriendSearchLoading(false);
+      setFriendSearchError("");
       return undefined;
     }
 
     const query = friendSearch.trim();
-    if (!query) {
-      setFriendSearchResults([]);
-      setFriendSearchLoading(false);
-      return undefined;
-    }
+    const controller = new AbortController();
+    setFriendSearchResults([]);
+    setFriendSearchLoading(true);
+    setFriendSearchError("");
 
     const timer = window.setTimeout(async () => {
-      setFriendSearchLoading(true);
       try {
-        const response = await fetch(`${API_URL}/api/auth/users/search?query=${encodeURIComponent(query)}`, {
+        const searchUrl = query
+          ? `${API_URL}/api/auth/users/search?query=${encodeURIComponent(query)}`
+          : `${API_URL}/api/auth/users/search`;
+        const response = await fetch(searchUrl, {
           headers: {
             Authorization: `Bearer ${token}`
-          }
+          },
+          signal: controller.signal
         });
         const data = await response.json();
         if (!response.ok) {
@@ -228,13 +233,21 @@ export default function App() {
           avatarUrl: item?.avatarUrl || buildAvatarUrl(item?.id || item?.username, item?.avatarStyle || "micah")
         })));
       } catch (error) {
-        setChatError(toFriendlyNetworkError(error, "Failed to search users"));
+        if (error?.name === "AbortError") {
+          return;
+        }
+        setFriendSearchError(toFriendlyNetworkError(error, "Failed to search users"));
       } finally {
-        setFriendSearchLoading(false);
+        if (!controller.signal.aborted) {
+          setFriendSearchLoading(false);
+        }
       }
     }, 260);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [friendSearch, isAuthed, token]);
 
   const usersWithStatus = useMemo(() => {
@@ -937,15 +950,64 @@ export default function App() {
         <div>
           <h3>Chats</h3>
           <div className="friend-search">
-            <input
-              value={friendSearch}
-              onChange={(event) => setFriendSearch(event.target.value)}
-              placeholder="Search users to add friend"
-              maxLength={40}
-            />
-            {friendSearchLoading ? <p className="friend-search-note">Searching...</p> : null}
-            {!friendSearchLoading && friendSearch.trim() && !friendSearchResults.length ? (
-              <p className="friend-search-note">No users found</p>
+            <div className="friend-search-heading">
+              <div>
+                <span className="friend-search-eyebrow">Discover</span>
+                <strong>Find people</strong>
+              </div>
+              {friendSearch ? (
+                <button
+                  type="button"
+                  className="friend-search-clear"
+                  onClick={() => setFriendSearch("")}
+                  aria-label="Clear search"
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
+            <label className="friend-search-field">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M16 16l4 4" />
+              </svg>
+              <input
+                value={friendSearch}
+                onChange={(event) => setFriendSearch(event.target.value)}
+                placeholder="Search username"
+                maxLength={40}
+                aria-label="Search for a friend"
+              />
+              {friendSearchLoading ? <span className="friend-search-spinner" aria-label="Searching" /> : null}
+            </label>
+
+            {!friendSearch.trim() ? (
+              <div className="friend-search-empty">
+                <span className="friend-search-empty-icon" aria-hidden="true">@</span>
+                <div>
+                  <strong>Find your people</strong>
+                  <p>Type a username to discover friends.</p>
+                </div>
+              </div>
+            ) : null}
+            {friendSearchLoading ? (
+              <div className="friend-search-loading" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+            ) : null}
+            {friendSearchError ? (
+              <p className="friend-search-note friend-search-error">{friendSearchError}</p>
+            ) : null}
+            {!friendSearchLoading && friendSearch.trim() && !friendSearchError && !friendSearchResults.length ? (
+              <div className="friend-search-empty friend-search-no-results">
+                <span className="friend-search-empty-icon" aria-hidden="true">?</span>
+                <div>
+                  <strong>No people found</strong>
+                  <p>Try another username.</p>
+                </div>
+              </div>
             ) : null}
             {friendSearchResults.length ? (
               <ul className="friend-search-results">
@@ -953,7 +1015,10 @@ export default function App() {
                   <li key={item.id} className="friend-search-row">
                     <div className="friend-search-user">
                       <img className="user-avatar" src={item.avatarUrl} alt="" />
-                      <span>{item.username}</span>
+                      <div className="friend-search-user-copy">
+                        <strong>{item.username}</strong>
+                        <span>{friendSearch.trim() ? "Chatz user" : "Suggested for you"}</span>
+                      </div>
                     </div>
                     <button
                       type="button"
