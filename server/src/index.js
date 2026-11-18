@@ -379,11 +379,22 @@ io.on("connection", (socket) => {
 
 async function bootstrap() {
   try {
-    if (!process.env.MONGODB_URI || !process.env.JWT_SECRET) {
-      throw new Error("MONGODB_URI and JWT_SECRET must be set in .env");
+    const mongoUri = String(process.env.MONGODB_URI || "").trim();
+    const jwtSecret = String(process.env.JWT_SECRET || "").trim();
+
+    if (!mongoUri || !jwtSecret) {
+      throw new Error("MONGODB_URI and JWT_SECRET must be set in the deployment environment");
     }
 
-    await mongoose.connect(process.env.MONGODB_URI);
+    if (mongoUri.includes("<") || mongoUri.includes(">")) {
+      throw new Error("MONGODB_URI contains placeholder brackets; replace it with the full Atlas connection string");
+    }
+
+    if (!/^mongodb(?:\+srv)?:\/\//.test(mongoUri)) {
+      throw new Error("MONGODB_URI must begin with mongodb:// or mongodb+srv://");
+    }
+
+    await mongoose.connect(mongoUri);
     server.listen(PORT, () => {
       // Keep startup logging concise and machine-readable for deployment logs.
       console.log(`Server listening on http://localhost:${PORT}`);

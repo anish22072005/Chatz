@@ -11,7 +11,9 @@ A full-stack real-time chat web app using:
 
 ### Backend
 1. Copy `server/.env.example` to `server/.env`
-2. Fill in `MONGODB_URI` and `JWT_SECRET`
+2. Set `MONGODB_URI` to a complete MongoDB/Atlas connection string and set `JWT_SECRET`
+3. On Render, update `MONGODB_URI` in the service Environment settings, then redeploy
+4. For MongoDB Atlas, allow Render's network or use a valid Atlas access configuration
 
 ### Frontend
 1. Copy `client/.env.example` to `client/.env`
