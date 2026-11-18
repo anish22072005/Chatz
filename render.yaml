@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: chatz-k70j
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URLS
+        value: https://chatzooooo.netlify.app,http://localhost:5173
